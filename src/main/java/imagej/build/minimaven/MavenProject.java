@@ -45,6 +45,8 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -99,6 +101,7 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 	protected Coordinate latestDependency = new Coordinate();
 	protected boolean isCurrentProfile;
 	protected String currentPluginName;
+	private Coordinate latestExclusion = new Coordinate();
 	private static Name CREATED_BY = new Name("Created-By");
 
 	protected MavenProject addModule(String name) throws IOException, ParserConfigurationException, SAXException {
@@ -771,6 +774,15 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 				env.err.println("Problems downloading the dependencies of " + getArtifactId());
 				throw e;
 			}
+			// We punt here: instead of excluding *only this* dependency's matching transitive dependencies, we simply exclude all matching transitive dependencies so far.
+			if (dependency.exclusions != null) {
+				for (final Iterator<MavenProject> iter = result.iterator(); iter.hasNext(); ) {
+					final MavenProject dep = iter.next();
+					if (dep != null && dependency.exclusions.contains(dep.getGroupId() + ":" + dep.getArtifactId())) {
+						iter.remove();
+					}
+				}
+			}
 		}
 	}
 
@@ -1066,7 +1078,19 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 			dependencies.add(latestDependency);
 			latestDependency = new Coordinate();
 		}
-		if (prefix.equals(">project>profiles>profile"))
+		else if (prefix.equals(">project>dependencies>dependency>exclusions>exclusion") ||
+				(isCurrentProfile && prefix.equals(">project>profiles>profile>dependencies>dependency>exclusions>exclusion"))) {
+			if (latestDependency.exclusions == null) {
+				latestDependency.exclusions = new HashSet<String>();
+			}
+			final String groupId = latestExclusion.getGroupId();
+			final String artifactId = latestExclusion.getArtifactId();
+			if (groupId != null && artifactId != null) {
+				latestDependency.exclusions.add(groupId + ":" + artifactId);
+			}
+			latestExclusion = new Coordinate();
+		}
+		else if (prefix.equals(">project>profiles>profile"))
 			isCurrentProfile = false;
 		prefix = prefix.substring(0, prefix.length() - 1 - qualifiedName.length());
 		if (env.debug)
@@ -1111,6 +1135,11 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 			latestDependency.systemPath = string;
 		else if (prefix.equals(">project>dependencies>dependency>classifier"))
 			latestDependency.classifier = string;
+		// for Bio-Formats' broken Maven dependencies, we need to support exclusions
+		else if (prefix.equals(">project>dependencies>dependency>exclusions>exclusion>groupId"))
+			latestExclusion.groupId = string;
+		else if (prefix.equals(">project>dependencies>dependency>exclusions>exclusion>artifactId"))
+			latestExclusion.artifactId = string;
 		else if (prefix.equals(">project>profiles>profile>id")) {
 			isCurrentProfile = (!System.getProperty("os.name").equals("Mac OS X") && "javac".equals(string)) || (coordinate.artifactId.equals("javassist") && (string.equals("jdk16") || string.equals("default-tools")));
 			if (env.debug)
