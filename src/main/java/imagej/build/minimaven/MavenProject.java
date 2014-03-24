@@ -810,7 +810,23 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 		String version = expand(dependency.version);
 		String classifier = expand(dependency.classifier);
 		String systemPath = expand(dependency.systemPath);
+		if (version == null) {
+			version = findVersion(groupId, artifactId);
+		}
 		return new Coordinate(groupId, artifactId, version, scope, optional, systemPath, classifier);
+	}
+
+	private String findVersion(final String groupId, final String artifactId) {
+		for (MavenProject parent = this.parent; parent != null; parent = parent.parent) {
+			for (final Coordinate dependency : parent.dependencies) {
+				if (dependency.version != null &&
+						groupId.equals(parent.expand(dependency.groupId)) &&
+						artifactId.equals(parent.expand(dependency.artifactId))) {
+					return parent.expand(dependency.version);
+				}
+			}
+		}
+		return null;
 	}
 
 	public String expand(String string) {
