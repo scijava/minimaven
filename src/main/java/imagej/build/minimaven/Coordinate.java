@@ -31,6 +31,8 @@
 
 package imagej.build.minimaven;
 
+import java.util.Set;
+
 /**
  * TODO
  * 
@@ -39,6 +41,7 @@ package imagej.build.minimaven;
 public class Coordinate {
 	protected String groupId, artifactId, version, systemPath, classifier, scope, snapshotVersion;
 	protected boolean optional;
+	protected Set<String> exclusions; // entries look like this: <groupId>:<artifactId>
 
 	public Coordinate() {}
 

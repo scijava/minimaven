@@ -36,18 +36,24 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
+
+import javax.xml.parsers.ParserConfigurationException;
 
 import org.junit.Test;
 import org.scijava.util.ClassUtils;
 import org.scijava.util.FileUtils;
+import org.xml.sax.SAXException;
 
 /**
  * A simple test for MiniMaven.
@@ -94,18 +100,86 @@ public class BasicTest {
 		FileUtils.deleteRecursively(ijDir);
 	}
 
+	@Test
+	public void testExcludeDependencies() throws Exception {
+		final BuildEnvironment env = new BuildEnvironment(null, false, false, false);
+		final File directory = createTemporaryDirectory("excludes-test-");
+
+		final String pom = pomPrefix
+				+ "\t<groupId>test2</groupId>\n"
+				+ "\t<artifactId>excluded</artifactId>\n"
+				+ "\t<version>0.0.1</version>\n"
+				+ "</project>";
+		final InputStream in = new ByteArrayInputStream(pom.getBytes());
+		final MavenProject excluded = env.parse(in, directory, null, null);
+
+		final String pom2 = pomPrefix
+				+ "\t<groupId>test</groupId>\n"
+				+ "\t<artifactId>dependency</artifactId>\n"
+				+ "\t<version>1.0.0</version>\n"
+				+ "\t<dependencies>\n"
+				+ "\t\t<dependency>\n"
+				+ "\t\t\t<groupId>test2</groupId>\n"
+				+ "\t\t\t<artifactId>excluded</artifactId>\n"
+				+ "\t\t\t<version>0.0.1</version>\n"
+				+ "\t\t</dependency>\n"
+				+ "\t</dependencies>\n"
+				+ "</project>";
+		final InputStream in2 = new ByteArrayInputStream(pom2.getBytes());
+		final MavenProject dependency = env.parse(in2, directory, null, null);
+
+		final String pom3 = pomPrefix
+				+ "\t<groupId>test3</groupId>\n"
+				+ "\t<artifactId>top-level</artifactId>\n"
+				+ "\t<version>1.0.2</version>\n"
+				+ "\t<dependencies>\n"
+				+ "\t\t<dependency>\n"
+				+ "\t\t\t<groupId>test</groupId>\n"
+				+ "\t\t\t<artifactId>dependency</artifactId>\n"
+				+ "\t\t\t<version>1.0.0</version>\n"
+				+ "\t\t\t<exclusions>\n"
+				+ "\t\t\t\t<exclusion>\n"
+				+ "\t\t\t\t\t<groupId>test2</groupId>\n"
+				+ "\t\t\t\t\t<artifactId>excluded</artifactId>\n"
+				+ "\t\t\t\t</exclusion>\n"
+				+ "\t\t\t</exclusions>\n"
+				+ "\t\t</dependency>\n"
+				+ "\t</dependencies>\n"
+				+ "</project>";
+		final InputStream in3 = new ByteArrayInputStream(pom3.getBytes());
+		final MavenProject project = env.parse(in3, directory, null, null);
+
+		assertDependencies(excluded);
+		assertDependencies(dependency, "test2:excluded:0.0.1:jar");
+		assertDependencies(project, "test:dependency:1.0.0:jar");
+	}
+
+	private void assertDependencies(final MavenProject project, final String... gavs) throws IOException, ParserConfigurationException, SAXException {
+		final Set<String> haystack = new HashSet<String>();
+		for (final String gav : gavs) {
+			haystack.add(gav);
+		}
+		for (final MavenProject dependency : project.getDependencies(true, false, "test")) {
+			final String gav = dependency.getGAV();
+			assertTrue("Unexpected dependency: " + gav, haystack.contains(gav));
+			haystack.remove(gav);
+		}
+		assertTrue("Missing: " + haystack.toString(), haystack.isEmpty());
+	}
+
+	private final static String pomPrefix = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+			+ "<project xmlns=\"http://maven.apache.org/POM/4.0.0\"\n"
+			+ "\txmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\""
+			+ "\txsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0"
+			+ "\t\thttp://maven.apache.org/xsd/maven-4.0.0.xsd\">\n"
+			+ "\t<modelVersion>4.0.0</modelVersion>\n";
+
 	private File writeExampleProject() throws IOException {
 		final File tmp = createTemporaryDirectory("minimaven-");
 		writeFile(new File(tmp, "src/main/resources/version.txt"),
 				"1.0.0\n");
 		writeFile(
-				new File(tmp, "pom.xml"),
-				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-						+ "<project xmlns=\"http://maven.apache.org/POM/4.0.0\"\n"
-						+ "\txmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\""
-						+ "\txsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0"
-						+ "\t\thttp://maven.apache.org/xsd/maven-4.0.0.xsd\">\n"
-						+ "\t<modelVersion>4.0.0</modelVersion>\n"
+				new File(tmp, "pom.xml"), pomPrefix
 						+ "\t<groupId>test</groupId>\n"
 						+ "\t<artifactId>blub</artifactId>\n"
 						+ "\t<version>1.0.0</version>\n" + "</project>");
