@@ -85,6 +85,7 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 	protected Map<String, String> properties = new HashMap<String, String>();
 	protected List<String> modules = new ArrayList<String>();
 	protected List<Coordinate> dependencies = new ArrayList<Coordinate>();
+	protected List<Coordinate> dependencyManagement = new ArrayList<Coordinate>();
 	protected Set<String> repositories = new TreeSet<String>();
 	protected String sourceVersion, targetVersion, mainClass;
 	protected boolean includeImplementationBuild;
@@ -817,8 +818,22 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 	}
 
 	private String findVersion(final String groupId, final String artifactId) {
+		for (final Coordinate dependency : dependencyManagement) {
+			if (dependency.version != null &&
+					groupId.equals(expand(dependency.groupId)) &&
+					artifactId.equals(expand(dependency.artifactId))) {
+				return expand(dependency.version);
+			}
+		}
 		for (MavenProject parent = this.parent; parent != null; parent = parent.parent) {
 			for (final Coordinate dependency : parent.dependencies) {
+				if (dependency.version != null &&
+						groupId.equals(parent.expand(dependency.groupId)) &&
+						artifactId.equals(parent.expand(dependency.artifactId))) {
+					return parent.expand(dependency.version);
+				}
+			}
+			for (final Coordinate dependency : parent.dependencyManagement) {
 				if (dependency.version != null &&
 						groupId.equals(parent.expand(dependency.groupId)) &&
 						artifactId.equals(parent.expand(dependency.artifactId))) {
@@ -1094,6 +1109,12 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 			dependencies.add(latestDependency);
 			latestDependency = new Coordinate();
 		}
+		else if (prefix.equals(">project>dependencyManagement>dependencies>dependency") || (isCurrentProfile && prefix.equals(">project>profiles>profile>dependencyManagement>dependencies>dependency"))) {
+			if (env.debug)
+				env.err.println("Adding dependendency " + latestDependency + " to " + this);
+			dependencyManagement.add(latestDependency);
+			latestDependency = new Coordinate();
+		}
 		else if (prefix.equals(">project>dependencies>dependency>exclusions>exclusion") ||
 				(isCurrentProfile && prefix.equals(">project>profiles>profile>dependencies>dependency>exclusions>exclusion"))) {
 			if (latestDependency.exclusions == null) {
@@ -1137,19 +1158,19 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 			modules.add(string);
 		else if (prefix.startsWith(">project>properties>"))
 			properties.put(prefix.substring(">project>properties>".length()), string);
-		else if (prefix.equals(">project>dependencies>dependency>groupId"))
+		else if (prefix.equals(">project>dependencies>dependency>groupId") || prefix.equals(">project>dependencyManagement>dependencies>dependency>groupId"))
 			latestDependency.groupId = string;
-		else if (prefix.equals(">project>dependencies>dependency>artifactId"))
+		else if (prefix.equals(">project>dependencies>dependency>artifactId") || prefix.equals(">project>dependencyManagement>dependencies>dependency>artifactId"))
 			latestDependency.artifactId = string;
-		else if (prefix.equals(">project>dependencies>dependency>version"))
+		else if (prefix.equals(">project>dependencies>dependency>version") || prefix.equals(">project>dependencyManagement>dependencies>dependency>version"))
 			latestDependency.version = string;
-		else if (prefix.equals(">project>dependencies>dependency>scope"))
+		else if (prefix.equals(">project>dependencies>dependency>scope") || prefix.equals(">project>dependencyManagement>dependencies>dependency>scope"))
 			latestDependency.scope = string;
-		else if (prefix.equals(">project>dependencies>dependency>optional"))
+		else if (prefix.equals(">project>dependencies>dependency>optional") || prefix.equals(">project>dependencyManagement>dependencies>dependency>optional"))
 			latestDependency.optional = string.equalsIgnoreCase("true");
-		else if (prefix.equals(">project>dependencies>dependency>systemPath"))
+		else if (prefix.equals(">project>dependencies>dependency>systemPath") || prefix.equals(">project>dependencyManagement>dependencies>dependency>systemPath"))
 			latestDependency.systemPath = string;
-		else if (prefix.equals(">project>dependencies>dependency>classifier"))
+		else if (prefix.equals(">project>dependencies>dependency>classifier") || prefix.equals(">project>dependencyManagement>dependencies>dependency>classifier"))
 			latestDependency.classifier = string;
 		// for Bio-Formats' broken Maven dependencies, we need to support exclusions
 		else if (prefix.equals(">project>dependencies>dependency>exclusions>exclusion>groupId"))
