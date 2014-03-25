@@ -139,4 +139,45 @@ public class BasicTest {
 		assertDependencies(dependency, "test2:excluded:0.0.1:jar", "test3:excludedToo:0.0.1:jar");
 		assertDependencies(project, "test:dependency:1.0.0:jar");
 	}
+
+	@Test
+	public void testDependencyManagement() throws Exception {
+		final MavenProject parent = writeExampleProject(
+				"<groupId>test</groupId>",
+				"<artifactId>parent</artifactId>",
+				"<version>0.0.1</version>",
+				"<packaging>pom</packaging>",
+				"<dependencyManagement>",
+				"<dependencies>",
+				"<groupId>test</groupId>",
+				"<artifactId>dependency</artifactId>",
+				"<version>0.0.3</version>",
+				"<dependency>",
+				"</dependency>",
+				"</dependencies>",
+				"</dependencyManagement>");
+
+		writeExampleProject(parent.env,
+				"<groupId>test</groupId>",
+				"<artifactId>dependency</artifactId>",
+				"<version>0.0.3</version>");
+
+		final MavenProject project = writeExampleProject(parent.env,
+				"<parent>",
+				"<groupId>test</groupId>",
+				"<artifactId>parent</artifactId>",
+				"<version>0.0.1</version>",
+				"</parent>",
+				"<groupId>test</groupId>",
+				"<artifactId>project</artifactId>",
+				"<version>1.0.0</version>",
+				"<dependencies>",
+				"<dependency>",
+				"<groupId>test</groupId>",
+				"<artifactId>dependency</artifactId>",
+				"</dependency>",
+				"</dependencies>");
+
+		assertDependencies(project, "test:dependency:0.0.3:jar");
+	}
 }
