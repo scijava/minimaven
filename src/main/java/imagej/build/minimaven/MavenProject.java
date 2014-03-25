@@ -811,10 +811,11 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 		String version = expand(dependency.version);
 		String classifier = expand(dependency.classifier);
 		String systemPath = expand(dependency.systemPath);
+		Set<String> exclusions = dependency.exclusions;
 		if (version == null) {
 			version = findVersion(groupId, artifactId);
 		}
-		return new Coordinate(groupId, artifactId, version, scope, optional, systemPath, classifier);
+		return new Coordinate(groupId, artifactId, version, scope, optional, systemPath, classifier, exclusions);
 	}
 
 	private String findVersion(final String groupId, final String artifactId) {
