@@ -35,11 +35,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.Writer;
 import java.util.HashSet;
 import java.util.Set;
@@ -93,52 +91,40 @@ public class BasicTest {
 
 	@Test
 	public void testExcludeDependencies() throws Exception {
-		final BuildEnvironment env = new BuildEnvironment(null, false, false, false);
-		final File directory = TestUtils.createTemporaryDirectory("excludes-test-");
+		final MavenProject excluded = writeExampleProject(
+				"<groupId>test2</groupId>",
+				"<artifactId>excluded</artifactId>",
+				"<version>0.0.1</version>");
 
-		final String pom = pomPrefix
-				+ "\t<groupId>test2</groupId>\n"
-				+ "\t<artifactId>excluded</artifactId>\n"
-				+ "\t<version>0.0.1</version>\n"
-				+ "</project>";
-		final InputStream in = new ByteArrayInputStream(pom.getBytes());
-		final MavenProject excluded = env.parse(in, directory, null, null);
+		final MavenProject dependency = writeExampleProject(excluded.env,
+				"<groupId>test</groupId>",
+				"<artifactId>dependency</artifactId>",
+				"<version>1.0.0</version>",
+				"<dependencies>",
+				"<dependency>",
+				"<groupId>test2</groupId>",
+				"<artifactId>excluded</artifactId>",
+				"<version>0.0.1</version>",
+				"</dependency>",
+				"</dependencies>");
 
-		final String pom2 = pomPrefix
-				+ "\t<groupId>test</groupId>\n"
-				+ "\t<artifactId>dependency</artifactId>\n"
-				+ "\t<version>1.0.0</version>\n"
-				+ "\t<dependencies>\n"
-				+ "\t\t<dependency>\n"
-				+ "\t\t\t<groupId>test2</groupId>\n"
-				+ "\t\t\t<artifactId>excluded</artifactId>\n"
-				+ "\t\t\t<version>0.0.1</version>\n"
-				+ "\t\t</dependency>\n"
-				+ "\t</dependencies>\n"
-				+ "</project>";
-		final InputStream in2 = new ByteArrayInputStream(pom2.getBytes());
-		final MavenProject dependency = env.parse(in2, directory, null, null);
-
-		final String pom3 = pomPrefix
-				+ "\t<groupId>test3</groupId>\n"
-				+ "\t<artifactId>top-level</artifactId>\n"
-				+ "\t<version>1.0.2</version>\n"
-				+ "\t<dependencies>\n"
-				+ "\t\t<dependency>\n"
-				+ "\t\t\t<groupId>test</groupId>\n"
-				+ "\t\t\t<artifactId>dependency</artifactId>\n"
-				+ "\t\t\t<version>1.0.0</version>\n"
-				+ "\t\t\t<exclusions>\n"
-				+ "\t\t\t\t<exclusion>\n"
-				+ "\t\t\t\t\t<groupId>test2</groupId>\n"
-				+ "\t\t\t\t\t<artifactId>excluded</artifactId>\n"
-				+ "\t\t\t\t</exclusion>\n"
-				+ "\t\t\t</exclusions>\n"
-				+ "\t\t</dependency>\n"
-				+ "\t</dependencies>\n"
-				+ "</project>";
-		final InputStream in3 = new ByteArrayInputStream(pom3.getBytes());
-		final MavenProject project = env.parse(in3, directory, null, null);
+		final MavenProject project = writeExampleProject(excluded.env,
+				"<groupId>test3</groupId>",
+				"<artifactId>top-level</artifactId>",
+				"<version>1.0.2</version>",
+				"<dependencies>",
+				"<dependency>",
+				"<groupId>test</groupId>",
+				"<artifactId>dependency</artifactId>",
+				"<version>1.0.0</version>",
+				"<exclusions>",
+				"<exclusion>",
+				"<groupId>test2</groupId>",
+				"<artifactId>excluded</artifactId>",
+				"</exclusion>",
+				"</exclusions>",
+				"</dependency>",
+				"</dependencies>");
 
 		assertDependencies(excluded);
 		assertDependencies(dependency, "test2:excluded:0.0.1:jar");
@@ -166,6 +152,10 @@ public class BasicTest {
 			+ "<modelVersion>4.0.0</modelVersion>";
 
 	private MavenProject writeExampleProject(String... projectConfiguration) throws IOException {
+		return writeExampleProject(null, projectConfiguration);
+	}
+
+	private MavenProject writeExampleProject(BuildEnvironment env, String... projectConfiguration) throws IOException {
 		if (projectConfiguration == null || projectConfiguration.length == 0) {
 			projectConfiguration = new String[] {
 					"<groupId>test</groupId>",
@@ -190,8 +180,9 @@ public class BasicTest {
 		TestUtils.prettyPrintXML(builder.toString(), out);
 		out.close();
 
-		final BuildEnvironment env = new BuildEnvironment(null, false,
-				false, false);
+		if (env == null) {
+			env = new BuildEnvironment(null, false,	false, false);
+		}
 		try {
 			return env.parse(pom);
 		}
