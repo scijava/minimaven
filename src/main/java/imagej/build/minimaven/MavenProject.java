@@ -819,30 +819,51 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 	}
 
 	private String findVersion(final String groupId, final String artifactId) {
-		for (final Coordinate dependency : dependencyManagement) {
-			if (dependency.version != null &&
-					groupId.equals(expand(dependency.groupId)) &&
-					artifactId.equals(expand(dependency.artifactId))) {
-				return expand(dependency.version);
+		final String[] result = { null };
+		queryDependencyManagement(new DependencyManagementCallback() {
+
+			@Override
+			public boolean coordinate(MavenProject project, Coordinate coordinate) {
+				 if (coordinate.version == null ||
+							!groupId.equals(project.expand(coordinate.groupId)) ||
+							!artifactId.equals(project.expand(coordinate.artifactId))) {
+					 return false;
+				 }
+				result[0] = project.expand(coordinate.version);
+				return true;
 			}
+		});
+		return result[0];
+	}
+
+	/**
+	 * A callback for the {@link #queryDependencyManagement(DependencyManagementCallback)}.
+	 * 
+	 * @author Johannes Schindelin
+	 */
+	private static interface DependencyManagementCallback {
+		/**
+		 * Handles one coordinate from the &lt;dependencyManagement&gt; section.
+		 * 
+		 * @param project the project defining the coordinate
+		 * @param coordinate the coordinate to handle
+		 * @return whether to stop processing here
+		 */
+		boolean coordinate(final MavenProject project, final Coordinate coordinate);
+	}
+
+	private void queryDependencyManagement(final DependencyManagementCallback callback) {
+		for (final Coordinate dependency : dependencyManagement) {
+			if (callback.coordinate(this, dependency)) return;
 		}
 		for (MavenProject parent = this.parent; parent != null; parent = parent.parent) {
 			for (final Coordinate dependency : parent.dependencies) {
-				if (dependency.version != null &&
-						groupId.equals(parent.expand(dependency.groupId)) &&
-						artifactId.equals(parent.expand(dependency.artifactId))) {
-					return parent.expand(dependency.version);
-				}
+				if (callback.coordinate(parent, dependency)) return;
 			}
 			for (final Coordinate dependency : parent.dependencyManagement) {
-				if (dependency.version != null &&
-						groupId.equals(parent.expand(dependency.groupId)) &&
-						artifactId.equals(parent.expand(dependency.artifactId))) {
-					return parent.expand(dependency.version);
-				}
+				if (callback.coordinate(parent, dependency)) return;
 			}
 		}
-		return null;
 	}
 
 	public String expand(String string) {
