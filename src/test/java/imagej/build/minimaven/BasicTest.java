@@ -35,23 +35,19 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.URL;
+import java.io.Writer;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.jar.JarFile;
-import java.util.zip.ZipEntry;
 
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.junit.Test;
-import org.scijava.util.ClassUtils;
 import org.scijava.util.FileUtils;
 import org.xml.sax.SAXException;
 
@@ -65,10 +61,8 @@ import org.xml.sax.SAXException;
 public class BasicTest {
 	@Test
 	public void testResources() throws Exception {
-		final File tmp = writeExampleProject();
-		final BuildEnvironment env = new BuildEnvironment(null, false,
-				false, false);
-		final MavenProject project = env.parse(new File(tmp, "pom.xml"));
+		final MavenProject project = writeExampleProject();
+		final File tmp = project.directory;
 		project.buildJar();
 
 		final File blub = new File(tmp, "target/blub-1.0.0.jar");
@@ -79,7 +73,7 @@ public class BasicTest {
 
 	@Test
 	public void testCopyToImageJApp() throws Exception {
-		final File tmp = writeExampleProject();
+		final MavenProject project = writeExampleProject();
 		final File ijDir = TestUtils.createTemporaryDirectory("ImageJ.app-");
 		final File jarsDir = new File(ijDir, "jars");
 		assertTrue(jarsDir.mkdir());
@@ -87,9 +81,6 @@ public class BasicTest {
 		TestUtils.writeFile(oldVersion, "old");
 		assertTrue(oldVersion.exists());
 
-		final BuildEnvironment env = new BuildEnvironment(null, false,
-				false, false);
-		final MavenProject project = env.parse(new File(tmp, "pom.xml"));
 		project.buildAndInstall(ijDir);
 
 		final File blub = new File(jarsDir, "blub-1.0.0.jar");
@@ -167,22 +158,48 @@ public class BasicTest {
 		assertTrue("Missing: " + haystack.toString(), haystack.isEmpty());
 	}
 
-	private final static String pomPrefix = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-			+ "<project xmlns=\"http://maven.apache.org/POM/4.0.0\"\n"
-			+ "\txmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\""
-			+ "\txsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0"
-			+ "\t\thttp://maven.apache.org/xsd/maven-4.0.0.xsd\">\n"
-			+ "\t<modelVersion>4.0.0</modelVersion>\n";
+	private final static String pomPrefix = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+			+ "<project xmlns=\"http://maven.apache.org/POM/4.0.0\" "
+			+ "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
+			+ "xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 "
+			+ "http://maven.apache.org/xsd/maven-4.0.0.xsd\">"
+			+ "<modelVersion>4.0.0</modelVersion>";
 
-	private File writeExampleProject() throws IOException {
-		final File tmp = createTemporaryDirectory("minimaven-");
+	private MavenProject writeExampleProject(String... projectConfiguration) throws IOException {
+		if (projectConfiguration == null || projectConfiguration.length == 0) {
+			projectConfiguration = new String[] {
+					"<groupId>test</groupId>",
+					"<artifactId>blub</artifactId>",
+					"<version>1.0.0</version>"
+			};
+		}
+
+		final StringBuilder builder = new StringBuilder();
+		builder.append(pomPrefix);
+		for (final String line : projectConfiguration) {
+			builder.append(line);
+		}
+		builder.append("</project>");
+
+		final File tmp = TestUtils.createTemporaryDirectory("minimaven-");
 		TestUtils.writeFile(new File(tmp, "src/main/resources/version.txt"),
 				"1.0.0\n");
-		TestUtils.writeFile(
-				new File(tmp, "pom.xml"), pomPrefix
-						+ "\t<groupId>test</groupId>\n"
-						+ "\t<artifactId>blub</artifactId>\n"
-						+ "\t<version>1.0.0</version>\n" + "</project>");
-		return tmp;
+
+		final File pom = new File(tmp, "pom.xml");
+		final Writer out = new FileWriter(pom);
+		TestUtils.prettyPrintXML(builder.toString(), out);
+		out.close();
+
+		final BuildEnvironment env = new BuildEnvironment(null, false,
+				false, false);
+		try {
+			return env.parse(pom);
+		}
+		catch (IOException e) {
+			throw e;
+		}
+		catch (Exception e) {
+			throw new IOException(e);
+		}
 	}
 }

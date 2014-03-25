@@ -37,12 +37,24 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.StringReader;
+import java.io.Writer;
 import java.net.URL;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+
 import org.scijava.util.ClassUtils;
 import org.scijava.util.FileUtils;
+import org.w3c.dom.Document;
+import org.xml.sax.InputSource;
 
 public class TestUtils {
 
@@ -153,5 +165,30 @@ public class TestUtils {
 		final FileWriter writer = new FileWriter(file);
 		writer.write(contents);
 		writer.close();
+	}
+
+	protected static void prettyPrintXML(final String string, final Writer writer)
+			throws IOException {
+		try {
+			final DocumentBuilder builder = DocumentBuilderFactory.newInstance()
+					.newDocumentBuilder();
+			final InputSource in = new InputSource(new StringReader(string));
+			final Document document = builder.parse(in);
+
+			final Transformer transformer = TransformerFactory.newInstance()
+					.newTransformer();
+			transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+			transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
+			final String XALAN_INDENT_AMOUNT = "{http://xml.apache.org/xslt}"
+					+ "indent-amount";
+			transformer.setOutputProperty(XALAN_INDENT_AMOUNT, "4");
+			StreamResult result = new StreamResult(writer);
+			DOMSource source = new DOMSource(document);
+			transformer.transform(source, result);
+		} catch (IOException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new IOException(e);
+		}
 	}
 }
