@@ -44,7 +44,6 @@ import java.io.File;
 import java.util.jar.JarFile;
 
 import org.junit.Test;
-import org.scijava.util.FileUtils;
 
 /**
  * A simple test for MiniMaven.
@@ -63,7 +62,6 @@ public class BasicTest {
 		final File blub = new File(tmp, "target/blub-1.0.0.jar");
 		assertTrue(blub.exists());
 		assertEquals("1.0.0\n", read(new JarFile(blub), "version.txt"));
-		FileUtils.deleteRecursively(tmp);
 	}
 
 	@Test
@@ -81,9 +79,6 @@ public class BasicTest {
 		final File blub = new File(jarsDir, "blub-1.0.0.jar");
 		assertTrue(blub.exists());
 		assertFalse(oldVersion.exists());
-
-		FileUtils.deleteRecursively(project.directory);
-		FileUtils.deleteRecursively(ijDir);
 	}
 
 	@Test
