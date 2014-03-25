@@ -31,6 +31,11 @@
 
 package imagej.build.minimaven;
 
+import static imagej.build.minimaven.TestUtils.assertDependencies;
+import static imagej.build.minimaven.TestUtils.createTemporaryDirectory;
+import static imagej.build.minimaven.TestUtils.read;
+import static imagej.build.minimaven.TestUtils.writeExampleProject;
+import static imagej.build.minimaven.TestUtils.writeFile;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -51,24 +56,24 @@ import org.scijava.util.FileUtils;
 public class BasicTest {
 	@Test
 	public void testResources() throws Exception {
-		final MavenProject project = TestUtils.writeExampleProject();
+		final MavenProject project = writeExampleProject();
 		final File tmp = project.directory;
 		project.buildJar();
 
 		final File blub = new File(tmp, "target/blub-1.0.0.jar");
 		assertTrue(blub.exists());
-		assertEquals("1.0.0\n", TestUtils.read(new JarFile(blub), "version.txt"));
+		assertEquals("1.0.0\n", read(new JarFile(blub), "version.txt"));
 		FileUtils.deleteRecursively(tmp);
 	}
 
 	@Test
 	public void testCopyToImageJApp() throws Exception {
-		final MavenProject project = TestUtils.writeExampleProject();
-		final File ijDir = TestUtils.createTemporaryDirectory("ImageJ.app-");
+		final MavenProject project = writeExampleProject();
+		final File ijDir = createTemporaryDirectory("ImageJ.app-");
 		final File jarsDir = new File(ijDir, "jars");
 		assertTrue(jarsDir.mkdir());
 		final File oldVersion = new File(jarsDir, "blub-0.0.5.jar");
-		TestUtils.writeFile(oldVersion, "old");
+		writeFile(oldVersion, "old");
 		assertTrue(oldVersion.exists());
 
 		project.buildAndInstall(ijDir);
@@ -83,12 +88,12 @@ public class BasicTest {
 
 	@Test
 	public void testExcludeDependencies() throws Exception {
-		final MavenProject excluded = TestUtils.writeExampleProject(
+		final MavenProject excluded = writeExampleProject(
 				"<groupId>test2</groupId>",
 				"<artifactId>excluded</artifactId>",
 				"<version>0.0.1</version>");
 
-		final MavenProject dependency = TestUtils.writeExampleProject(excluded.env,
+		final MavenProject dependency = writeExampleProject(excluded.env,
 				"<groupId>test</groupId>",
 				"<artifactId>dependency</artifactId>",
 				"<version>1.0.0</version>",
@@ -100,7 +105,7 @@ public class BasicTest {
 				"</dependency>",
 				"</dependencies>");
 
-		final MavenProject project = TestUtils.writeExampleProject(excluded.env,
+		final MavenProject project = writeExampleProject(excluded.env,
 				"<groupId>test3</groupId>",
 				"<artifactId>top-level</artifactId>",
 				"<version>1.0.2</version>",
@@ -118,8 +123,8 @@ public class BasicTest {
 				"</dependency>",
 				"</dependencies>");
 
-		TestUtils.assertDependencies(excluded);
-		TestUtils.assertDependencies(dependency, "test2:excluded:0.0.1:jar");
-		TestUtils.assertDependencies(project, "test:dependency:1.0.0:jar");
+		assertDependencies(excluded);
+		assertDependencies(dependency, "test2:excluded:0.0.1:jar");
+		assertDependencies(project, "test:dependency:1.0.0:jar");
 	}
 }
