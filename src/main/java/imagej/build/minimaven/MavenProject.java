@@ -46,7 +46,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -727,11 +727,13 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 
 	public Set<MavenProject> getDependencies(boolean excludeOptionals, boolean downloadAutomatically, String... excludeScopes) throws IOException, ParserConfigurationException, SAXException {
 		Set<MavenProject> set = new TreeSet<MavenProject>();
-		getDependencies(set, excludeOptionals, downloadAutomatically, excludeScopes);
+		getDependencies(set, excludeOptionals, downloadAutomatically, null, excludeScopes);
 		return set;
 	}
 
-	public void getDependencies(Set<MavenProject> result, boolean excludeOptionals, boolean downloadAutomatically, String... excludeScopes) throws IOException, ParserConfigurationException, SAXException {
+	public void getDependencies(Set<MavenProject> result, boolean excludeOptionals, boolean downloadAutomatically, Set<String> exclusions, String... excludeScopes) throws IOException, ParserConfigurationException, SAXException {
+		if (exclusions != null) exclusions = new LinkedHashSet<String>(exclusions);
+		else exclusions = new LinkedHashSet<String>();
 		for (Coordinate dependency : dependencies) {
 			if (excludeOptionals && dependency.optional)
 				continue;
@@ -739,6 +741,9 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 			if (scope != null && excludeScopes != null && arrayContainsString(excludeScopes, scope))
 				continue;
 			Coordinate expanded = expand(dependency);
+			if (exclusions.size() > 0 &&
+					exclusions.contains(expanded.getGroupId() + ":" + expanded.getArtifactId())) continue;
+			addExclusions(exclusions, expanded);
 			MavenProject pom = findPOM(expanded, !env.verbose, false);
 			String systemPath = expand(dependency.systemPath);
 			if (pom == null && systemPath != null) {
@@ -770,21 +775,30 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 				continue;
 			result.add(pom);
 			try {
-				pom.getDependencies(result, env.downloadAutomatically, excludeOptionals, excludeScopes);
+				pom.getDependencies(result, env.downloadAutomatically, excludeOptionals, exclusions, excludeScopes);
 			} catch (IOException e) {
 				env.err.println("Problems downloading the dependencies of " + getArtifactId());
 				throw e;
 			}
-			// We punt here: instead of excluding *only this* dependency's matching transitive dependencies, we simply exclude all matching transitive dependencies so far.
-			if (dependency.exclusions != null) {
-				for (final Iterator<MavenProject> iter = result.iterator(); iter.hasNext(); ) {
-					final MavenProject dep = iter.next();
-					if (dep != null && dependency.exclusions.contains(dep.getGroupId() + ":" + dep.getArtifactId())) {
-						iter.remove();
-					}
-				}
-			}
 		}
+	}
+
+	private void addExclusions(final Set<String> exclusions, final Coordinate dependency) {
+		if (dependency.exclusions != null) exclusions.addAll(dependency.exclusions);
+		final String groupId = dependency.getGroupId();
+		final String artifactId = dependency.getArtifactId();
+		queryDependencyManagement(new DependencyManagementCallback() {
+
+			@Override
+			public boolean coordinate(MavenProject project, Coordinate coordinate) {
+				if (coordinate.exclusions != null &&
+						groupId.equals(project.expand(coordinate.groupId)) &&
+						artifactId.equals(project.expand(coordinate.artifactId))) {
+					exclusions.addAll(coordinate.exclusions);
+				}
+				return false;
+			}
+		});
 	}
 
 	public List<Coordinate> getDirectDependencies() {
