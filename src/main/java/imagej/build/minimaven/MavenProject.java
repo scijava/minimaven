@@ -46,7 +46,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -85,6 +85,7 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 	protected Map<String, String> properties = new HashMap<String, String>();
 	protected List<String> modules = new ArrayList<String>();
 	protected List<Coordinate> dependencies = new ArrayList<Coordinate>();
+	protected List<Coordinate> dependencyManagement = new ArrayList<Coordinate>();
 	protected Set<String> repositories = new TreeSet<String>();
 	protected String sourceVersion, targetVersion, mainClass;
 	protected boolean includeImplementationBuild;
@@ -726,11 +727,13 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 
 	public Set<MavenProject> getDependencies(boolean excludeOptionals, boolean downloadAutomatically, String... excludeScopes) throws IOException, ParserConfigurationException, SAXException {
 		Set<MavenProject> set = new TreeSet<MavenProject>();
-		getDependencies(set, excludeOptionals, downloadAutomatically, excludeScopes);
+		getDependencies(set, excludeOptionals, downloadAutomatically, null, excludeScopes);
 		return set;
 	}
 
-	public void getDependencies(Set<MavenProject> result, boolean excludeOptionals, boolean downloadAutomatically, String... excludeScopes) throws IOException, ParserConfigurationException, SAXException {
+	public void getDependencies(Set<MavenProject> result, boolean excludeOptionals, boolean downloadAutomatically, Set<String> exclusions, String... excludeScopes) throws IOException, ParserConfigurationException, SAXException {
+		if (exclusions != null) exclusions = new LinkedHashSet<String>(exclusions);
+		else exclusions = new LinkedHashSet<String>();
 		for (Coordinate dependency : dependencies) {
 			if (excludeOptionals && dependency.optional)
 				continue;
@@ -738,6 +741,9 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 			if (scope != null && excludeScopes != null && arrayContainsString(excludeScopes, scope))
 				continue;
 			Coordinate expanded = expand(dependency);
+			if (exclusions.size() > 0 &&
+					exclusions.contains(expanded.getGroupId() + ":" + expanded.getArtifactId())) continue;
+			addExclusions(exclusions, expanded);
 			MavenProject pom = findPOM(expanded, !env.verbose, false);
 			String systemPath = expand(dependency.systemPath);
 			if (pom == null && systemPath != null) {
@@ -769,21 +775,30 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 				continue;
 			result.add(pom);
 			try {
-				pom.getDependencies(result, env.downloadAutomatically, excludeOptionals, excludeScopes);
+				pom.getDependencies(result, env.downloadAutomatically, excludeOptionals, exclusions, excludeScopes);
 			} catch (IOException e) {
 				env.err.println("Problems downloading the dependencies of " + getArtifactId());
 				throw e;
 			}
-			// We punt here: instead of excluding *only this* dependency's matching transitive dependencies, we simply exclude all matching transitive dependencies so far.
-			if (dependency.exclusions != null) {
-				for (final Iterator<MavenProject> iter = result.iterator(); iter.hasNext(); ) {
-					final MavenProject dep = iter.next();
-					if (dep != null && dependency.exclusions.contains(dep.getGroupId() + ":" + dep.getArtifactId())) {
-						iter.remove();
-					}
-				}
-			}
 		}
+	}
+
+	private void addExclusions(final Set<String> exclusions, final Coordinate dependency) {
+		if (dependency.exclusions != null) exclusions.addAll(dependency.exclusions);
+		final String groupId = dependency.getGroupId();
+		final String artifactId = dependency.getArtifactId();
+		queryDependencyManagement(new DependencyManagementCallback() {
+
+			@Override
+			public boolean coordinate(MavenProject project, Coordinate coordinate) {
+				if (coordinate.exclusions != null &&
+						groupId.equals(project.expand(coordinate.groupId)) &&
+						artifactId.equals(project.expand(coordinate.artifactId))) {
+					exclusions.addAll(coordinate.exclusions);
+				}
+				return false;
+			}
+		});
 	}
 
 	public List<Coordinate> getDirectDependencies() {
@@ -810,7 +825,59 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 		String version = expand(dependency.version);
 		String classifier = expand(dependency.classifier);
 		String systemPath = expand(dependency.systemPath);
-		return new Coordinate(groupId, artifactId, version, scope, optional, systemPath, classifier);
+		Set<String> exclusions = dependency.exclusions;
+		if (version == null) {
+			version = findVersion(groupId, artifactId);
+		}
+		return new Coordinate(groupId, artifactId, version, scope, optional, systemPath, classifier, exclusions);
+	}
+
+	private String findVersion(final String groupId, final String artifactId) {
+		final String[] result = { null };
+		queryDependencyManagement(new DependencyManagementCallback() {
+
+			@Override
+			public boolean coordinate(MavenProject project, Coordinate coordinate) {
+				 if (coordinate.version == null ||
+							!groupId.equals(project.expand(coordinate.groupId)) ||
+							!artifactId.equals(project.expand(coordinate.artifactId))) {
+					 return false;
+				 }
+				result[0] = project.expand(coordinate.version);
+				return true;
+			}
+		});
+		return result[0];
+	}
+
+	/**
+	 * A callback for the {@link #queryDependencyManagement(DependencyManagementCallback)}.
+	 * 
+	 * @author Johannes Schindelin
+	 */
+	private static interface DependencyManagementCallback {
+		/**
+		 * Handles one coordinate from the &lt;dependencyManagement&gt; section.
+		 * 
+		 * @param project the project defining the coordinate
+		 * @param coordinate the coordinate to handle
+		 * @return whether to stop processing here
+		 */
+		boolean coordinate(final MavenProject project, final Coordinate coordinate);
+	}
+
+	private void queryDependencyManagement(final DependencyManagementCallback callback) {
+		for (final Coordinate dependency : dependencyManagement) {
+			if (callback.coordinate(this, dependency)) return;
+		}
+		for (MavenProject parent = this.parent; parent != null; parent = parent.parent) {
+			for (final Coordinate dependency : parent.dependencies) {
+				if (callback.coordinate(parent, dependency)) return;
+			}
+			for (final Coordinate dependency : parent.dependencyManagement) {
+				if (callback.coordinate(parent, dependency)) return;
+			}
+		}
 	}
 
 	public String expand(String string) {
@@ -1078,6 +1145,12 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 			dependencies.add(latestDependency);
 			latestDependency = new Coordinate();
 		}
+		else if (prefix.equals(">project>dependencyManagement>dependencies>dependency") || (isCurrentProfile && prefix.equals(">project>profiles>profile>dependencyManagement>dependencies>dependency"))) {
+			if (env.debug)
+				env.err.println("Adding dependendency " + latestDependency + " to " + this);
+			dependencyManagement.add(latestDependency);
+			latestDependency = new Coordinate();
+		}
 		else if (prefix.equals(">project>dependencies>dependency>exclusions>exclusion") ||
 				(isCurrentProfile && prefix.equals(">project>profiles>profile>dependencies>dependency>exclusions>exclusion"))) {
 			if (latestDependency.exclusions == null) {
@@ -1121,19 +1194,19 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 			modules.add(string);
 		else if (prefix.startsWith(">project>properties>"))
 			properties.put(prefix.substring(">project>properties>".length()), string);
-		else if (prefix.equals(">project>dependencies>dependency>groupId"))
+		else if (prefix.equals(">project>dependencies>dependency>groupId") || prefix.equals(">project>dependencyManagement>dependencies>dependency>groupId"))
 			latestDependency.groupId = string;
-		else if (prefix.equals(">project>dependencies>dependency>artifactId"))
+		else if (prefix.equals(">project>dependencies>dependency>artifactId") || prefix.equals(">project>dependencyManagement>dependencies>dependency>artifactId"))
 			latestDependency.artifactId = string;
-		else if (prefix.equals(">project>dependencies>dependency>version"))
+		else if (prefix.equals(">project>dependencies>dependency>version") || prefix.equals(">project>dependencyManagement>dependencies>dependency>version"))
 			latestDependency.version = string;
-		else if (prefix.equals(">project>dependencies>dependency>scope"))
+		else if (prefix.equals(">project>dependencies>dependency>scope") || prefix.equals(">project>dependencyManagement>dependencies>dependency>scope"))
 			latestDependency.scope = string;
-		else if (prefix.equals(">project>dependencies>dependency>optional"))
+		else if (prefix.equals(">project>dependencies>dependency>optional") || prefix.equals(">project>dependencyManagement>dependencies>dependency>optional"))
 			latestDependency.optional = string.equalsIgnoreCase("true");
-		else if (prefix.equals(">project>dependencies>dependency>systemPath"))
+		else if (prefix.equals(">project>dependencies>dependency>systemPath") || prefix.equals(">project>dependencyManagement>dependencies>dependency>systemPath"))
 			latestDependency.systemPath = string;
-		else if (prefix.equals(">project>dependencies>dependency>classifier"))
+		else if (prefix.equals(">project>dependencies>dependency>classifier") || prefix.equals(">project>dependencyManagement>dependencies>dependency>classifier"))
 			latestDependency.classifier = string;
 		// for Bio-Formats' broken Maven dependencies, we need to support exclusions
 		else if (prefix.equals(">project>dependencies>dependency>exclusions>exclusion>groupId"))

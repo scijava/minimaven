@@ -46,10 +46,15 @@ public class Coordinate {
 	public Coordinate() {}
 
 	public Coordinate(String groupId, String artifactId, String version) {
-		this(groupId, artifactId, version, null, false, null, null);
+		this(groupId, artifactId, version, null, false, null, null, null);
 	}
 
+	@Deprecated
 	public Coordinate(String groupId, String artifactId, String version, String scope, boolean optional, String systemPath, String classifier) {
+		this(groupId, artifactId, version, scope, optional, systemPath, classifier, null);
+	}
+
+	protected Coordinate(String groupId, String artifactId, String version, String scope, boolean optional, String systemPath, String classifier, Set<String> exclusions) {
 		this.groupId = normalize(groupId);
 		this.artifactId = normalize(artifactId);
 		this.version = normalize(version);
@@ -57,6 +62,7 @@ public class Coordinate {
 		this.optional = optional;
 		this.systemPath = normalize(systemPath);
 		this.classifier = classifier;
+		this.exclusions = exclusions;
 	}
 
 	public String normalize(String s) {
