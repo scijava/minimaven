@@ -31,6 +31,8 @@
 
 package imagej.build.minimaven;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileWriter;
@@ -40,11 +42,14 @@ import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.io.Writer;
 import java.net.URL;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
@@ -55,6 +60,7 @@ import org.scijava.util.ClassUtils;
 import org.scijava.util.FileUtils;
 import org.w3c.dom.Document;
 import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
 public class TestUtils {
 
@@ -188,6 +194,69 @@ public class TestUtils {
 		} catch (IOException e) {
 			throw e;
 		} catch (Exception e) {
+			throw new IOException(e);
+		}
+	}
+
+	protected static void assertDependencies(final MavenProject project, final String... gavs) throws IOException, ParserConfigurationException, SAXException {
+		final Set<String> haystack = new HashSet<String>();
+		for (final String gav : gavs) {
+			haystack.add(gav);
+		}
+		for (final MavenProject dependency : project.getDependencies(true, false, "test")) {
+			final String gav = dependency.getGAV();
+			assertTrue("Unexpected dependency: " + gav, haystack.contains(gav));
+			haystack.remove(gav);
+		}
+		assertTrue("Missing: " + haystack.toString(), haystack.isEmpty());
+	}
+
+	protected final static String pomPrefix = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+	+ "<project xmlns=\"http://maven.apache.org/POM/4.0.0\" "
+	+ "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
+	+ "xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 "
+	+ "http://maven.apache.org/xsd/maven-4.0.0.xsd\">"
+	+ "<modelVersion>4.0.0</modelVersion>";
+
+	protected static MavenProject writeExampleProject(String... projectConfiguration) throws IOException {
+		return TestUtils.writeExampleProject(null, projectConfiguration);
+	}
+
+	protected static MavenProject writeExampleProject(BuildEnvironment env, String... projectConfiguration) throws IOException {
+		if (projectConfiguration == null || projectConfiguration.length == 0) {
+			projectConfiguration = new String[] {
+					"<groupId>test</groupId>",
+					"<artifactId>blub</artifactId>",
+					"<version>1.0.0</version>"
+			};
+		}
+
+		final StringBuilder builder = new StringBuilder();
+		builder.append(pomPrefix);
+		for (final String line : projectConfiguration) {
+			builder.append(line);
+		}
+		builder.append("</project>");
+
+		final File tmp = createTemporaryDirectory("minimaven-");
+		writeFile(new File(tmp, "src/main/resources/version.txt"),
+				"1.0.0\n");
+
+		final File pom = new File(tmp, "pom.xml");
+		final Writer out = new FileWriter(pom);
+		prettyPrintXML(builder.toString(), out);
+		out.close();
+
+		if (env == null) {
+			env = new BuildEnvironment(null, false,	false, false);
+		}
+		try {
+			return env.parse(pom);
+		}
+		catch (IOException e) {
+			throw e;
+		}
+		catch (Exception e) {
 			throw new IOException(e);
 		}
 	}

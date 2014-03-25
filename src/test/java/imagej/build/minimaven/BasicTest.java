@@ -36,18 +36,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Writer;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.jar.JarFile;
-
-import javax.xml.parsers.ParserConfigurationException;
 
 import org.junit.Test;
 import org.scijava.util.FileUtils;
-import org.xml.sax.SAXException;
 
 /**
  * A simple test for MiniMaven.
@@ -59,7 +51,7 @@ import org.xml.sax.SAXException;
 public class BasicTest {
 	@Test
 	public void testResources() throws Exception {
-		final MavenProject project = writeExampleProject();
+		final MavenProject project = TestUtils.writeExampleProject();
 		final File tmp = project.directory;
 		project.buildJar();
 
@@ -71,7 +63,7 @@ public class BasicTest {
 
 	@Test
 	public void testCopyToImageJApp() throws Exception {
-		final MavenProject project = writeExampleProject();
+		final MavenProject project = TestUtils.writeExampleProject();
 		final File ijDir = TestUtils.createTemporaryDirectory("ImageJ.app-");
 		final File jarsDir = new File(ijDir, "jars");
 		assertTrue(jarsDir.mkdir());
@@ -91,12 +83,12 @@ public class BasicTest {
 
 	@Test
 	public void testExcludeDependencies() throws Exception {
-		final MavenProject excluded = writeExampleProject(
+		final MavenProject excluded = TestUtils.writeExampleProject(
 				"<groupId>test2</groupId>",
 				"<artifactId>excluded</artifactId>",
 				"<version>0.0.1</version>");
 
-		final MavenProject dependency = writeExampleProject(excluded.env,
+		final MavenProject dependency = TestUtils.writeExampleProject(excluded.env,
 				"<groupId>test</groupId>",
 				"<artifactId>dependency</artifactId>",
 				"<version>1.0.0</version>",
@@ -108,7 +100,7 @@ public class BasicTest {
 				"</dependency>",
 				"</dependencies>");
 
-		final MavenProject project = writeExampleProject(excluded.env,
+		final MavenProject project = TestUtils.writeExampleProject(excluded.env,
 				"<groupId>test3</groupId>",
 				"<artifactId>top-level</artifactId>",
 				"<version>1.0.2</version>",
@@ -126,71 +118,8 @@ public class BasicTest {
 				"</dependency>",
 				"</dependencies>");
 
-		assertDependencies(excluded);
-		assertDependencies(dependency, "test2:excluded:0.0.1:jar");
-		assertDependencies(project, "test:dependency:1.0.0:jar");
-	}
-
-	private void assertDependencies(final MavenProject project, final String... gavs) throws IOException, ParserConfigurationException, SAXException {
-		final Set<String> haystack = new HashSet<String>();
-		for (final String gav : gavs) {
-			haystack.add(gav);
-		}
-		for (final MavenProject dependency : project.getDependencies(true, false, "test")) {
-			final String gav = dependency.getGAV();
-			assertTrue("Unexpected dependency: " + gav, haystack.contains(gav));
-			haystack.remove(gav);
-		}
-		assertTrue("Missing: " + haystack.toString(), haystack.isEmpty());
-	}
-
-	private final static String pomPrefix = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
-			+ "<project xmlns=\"http://maven.apache.org/POM/4.0.0\" "
-			+ "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
-			+ "xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 "
-			+ "http://maven.apache.org/xsd/maven-4.0.0.xsd\">"
-			+ "<modelVersion>4.0.0</modelVersion>";
-
-	private MavenProject writeExampleProject(String... projectConfiguration) throws IOException {
-		return writeExampleProject(null, projectConfiguration);
-	}
-
-	private MavenProject writeExampleProject(BuildEnvironment env, String... projectConfiguration) throws IOException {
-		if (projectConfiguration == null || projectConfiguration.length == 0) {
-			projectConfiguration = new String[] {
-					"<groupId>test</groupId>",
-					"<artifactId>blub</artifactId>",
-					"<version>1.0.0</version>"
-			};
-		}
-
-		final StringBuilder builder = new StringBuilder();
-		builder.append(pomPrefix);
-		for (final String line : projectConfiguration) {
-			builder.append(line);
-		}
-		builder.append("</project>");
-
-		final File tmp = TestUtils.createTemporaryDirectory("minimaven-");
-		TestUtils.writeFile(new File(tmp, "src/main/resources/version.txt"),
-				"1.0.0\n");
-
-		final File pom = new File(tmp, "pom.xml");
-		final Writer out = new FileWriter(pom);
-		TestUtils.prettyPrintXML(builder.toString(), out);
-		out.close();
-
-		if (env == null) {
-			env = new BuildEnvironment(null, false,	false, false);
-		}
-		try {
-			return env.parse(pom);
-		}
-		catch (IOException e) {
-			throw e;
-		}
-		catch (Exception e) {
-			throw new IOException(e);
-		}
+		TestUtils.assertDependencies(excluded);
+		TestUtils.assertDependencies(dependency, "test2:excluded:0.0.1:jar");
+		TestUtils.assertDependencies(project, "test:dependency:1.0.0:jar");
 	}
 }
