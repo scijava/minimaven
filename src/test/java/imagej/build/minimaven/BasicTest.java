@@ -88,10 +88,22 @@ public class BasicTest {
 
 	@Test
 	public void testExcludeDependencies() throws Exception {
-		final MavenProject excluded = writeExampleProject(
+		final MavenProject excludedToo = writeExampleProject(
+				"<groupId>test3</groupId>",
+				"<artifactId>excludedToo</artifactId>",
+				"<version>0.0.1</version>");
+
+		final MavenProject excluded = writeExampleProject(excludedToo.env,
 				"<groupId>test2</groupId>",
 				"<artifactId>excluded</artifactId>",
-				"<version>0.0.1</version>");
+				"<version>0.0.1</version>",
+				"<dependencies>",
+				"<dependency>",
+				"<groupId>test3</groupId>",
+				"<artifactId>excludedToo</artifactId>",
+				"<version>0.0.1</version>",
+				"</dependency>",
+				"</dependencies>");
 
 		final MavenProject dependency = writeExampleProject(excluded.env,
 				"<groupId>test</groupId>",
@@ -123,8 +135,8 @@ public class BasicTest {
 				"</dependency>",
 				"</dependencies>");
 
-		assertDependencies(excluded);
-		assertDependencies(dependency, "test2:excluded:0.0.1:jar");
+		assertDependencies(excluded, "test3:excludedToo:0.0.1:jar");
+		assertDependencies(dependency, "test2:excluded:0.0.1:jar", "test3:excludedToo:0.0.1:jar");
 		assertDependencies(project, "test:dependency:1.0.0:jar");
 	}
 }
