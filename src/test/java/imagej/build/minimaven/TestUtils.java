@@ -260,7 +260,7 @@ public class TestUtils {
 		out.close();
 
 		if (env == null) {
-			env = new BuildEnvironment(null, false,	false, false);
+			env = new BuildEnvironment(null, false, false, false);
 		}
 		try {
 			return env.parse(pom);
