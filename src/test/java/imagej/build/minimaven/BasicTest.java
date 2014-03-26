@@ -187,7 +187,8 @@ public class BasicTest {
 		final String version = "3.7.3.1";
 		final String classifier = "swing";
 
-		final MavenProject project = writeExampleProject(
+		final BuildEnvironment env = new BuildEnvironment(null, true, false, false);
+		final MavenProject project = writeExampleProject(env,
 				"<groupId>test</groupId>",
 				"<artifactId>project</artifactId>",
 				"<version>1.0.0</version>",
