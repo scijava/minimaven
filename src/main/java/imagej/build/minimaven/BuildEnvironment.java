@@ -259,7 +259,7 @@ public class BuildEnvironment {
 		if (dependency.artifactId.equals("ij")) {
 			String javac = pom.expand("${java.home}/../lib/tools.jar");
 			if (new File(javac).exists())
-				pom.dependencies.add(new Coordinate("com.sun", "tools", "1.4.2", null, false, javac, null));
+				pom.dependencies.add(new Coordinate("com.sun", "tools", "1.4.2", null, false, javac, null, null));
 		}
 		else if (dependency.artifactId.equals("imglib2-io"))
 			pom.dependencies.add(new Coordinate("loci", "bio-formats", "${bio-formats.version}"));
