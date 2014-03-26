@@ -11,7 +11,7 @@
 
 	<groupId>net.imagej</groupId>
 	<artifactId>minimaven</artifactId>
-	<version>1.0.2-SNAPSHOT</version>
+	<version>1.0.3-SNAPSHOT</version>
 
 	<name>Minimal support for Maven projects</name>
 	<description>A minimal build system interpreting Maven-style pom.xml files</description>
