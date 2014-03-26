@@ -654,6 +654,7 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 		final File targetDir = new File(ijDir, getTargetDirectory(source));
 		final File target = new File(targetDir, getArtifactId()
 				+ ("Fiji_Updater".equals(getArtifactId()) ? "" : "-" + getVersion())
+				+ (coordinate.classifier == null ? "" : "-" + coordinate.classifier)
 				+ ".jar");
 		if (!targetDir.exists()) {
 			if (!targetDir.mkdirs()) {
