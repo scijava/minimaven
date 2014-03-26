@@ -33,18 +33,19 @@ package imagej.build.minimaven;
 
 import static imagej.build.minimaven.TestUtils.assertDependencies;
 import static imagej.build.minimaven.TestUtils.createTemporaryDirectory;
+import static imagej.build.minimaven.TestUtils.haveNetworkConnection;
 import static imagej.build.minimaven.TestUtils.read;
 import static imagej.build.minimaven.TestUtils.writeExampleProject;
 import static imagej.build.minimaven.TestUtils.writeFile;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
 import java.util.jar.JarFile;
 
 import org.junit.Test;
-import org.scijava.util.FileUtils;
 
 /**
  * A simple test for MiniMaven.
@@ -63,7 +64,6 @@ public class BasicTest {
 		final File blub = new File(tmp, "target/blub-1.0.0.jar");
 		assertTrue(blub.exists());
 		assertEquals("1.0.0\n", read(new JarFile(blub), "version.txt"));
-		FileUtils.deleteRecursively(tmp);
 	}
 
 	@Test
@@ -81,9 +81,6 @@ public class BasicTest {
 		final File blub = new File(jarsDir, "blub-1.0.0.jar");
 		assertTrue(blub.exists());
 		assertFalse(oldVersion.exists());
-
-		FileUtils.deleteRecursively(project.directory);
-		FileUtils.deleteRecursively(ijDir);
 	}
 
 	@Test
@@ -179,5 +176,42 @@ public class BasicTest {
 				"</dependencies>");
 
 		assertDependencies(project, "test:dependency:0.0.3:jar");
+	}
+
+	@Test
+	public void testClassifiers() throws Exception {
+		assumeTrue(haveNetworkConnection());
+
+		final String groupId = "com.miglayout";
+		final String artifactId = "miglayout";
+		final String version = "3.7.3.1";
+		final String classifier = "swing";
+
+		final MavenProject project = writeExampleProject(
+				"<groupId>test</groupId>",
+				"<artifactId>project</artifactId>",
+				"<version>1.0.0</version>",
+				"<dependencies>",
+				"<dependency>",
+				"<groupId>" + groupId + "</groupId>",
+				"<artifactId>" + artifactId + "</artifactId>",
+				"<version>" + version + "</version>",
+				"</dependency>",
+				"<dependency>",
+				"<groupId>" + groupId + "</groupId>",
+				"<artifactId>" + artifactId + "</artifactId>",
+				"<version>" + version + "</version>",
+				"<classifier>" + classifier + "</classifier>",
+				"</dependency>",
+				"</dependencies>");
+
+		final File ijDir = createTemporaryDirectory("ImageJ.app-");
+		project.buildAndInstall(ijDir);
+
+		final File jarsDir = new File(ijDir, "jars");
+		final File file = new File(jarsDir, artifactId + "-" + version + ".jar");
+		assertTrue(file.exists());
+		final File file2 = new File(jarsDir, artifactId + "-" + version + "-" + classifier + ".jar");
+		assertTrue(file2.exists());
 	}
 }

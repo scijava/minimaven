@@ -654,6 +654,7 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 		final File targetDir = new File(ijDir, getTargetDirectory(source));
 		final File target = new File(targetDir, getArtifactId()
 				+ ("Fiji_Updater".equals(getArtifactId()) ? "" : "-" + getVersion())
+				+ (coordinate.classifier == null ? "" : "-" + coordinate.classifier)
 				+ ".jar");
 		if (!targetDir.exists()) {
 			if (!targetDir.mkdirs()) {
@@ -1323,7 +1324,35 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 			result = coordinate.groupId.compareTo(other.coordinate.groupId);
 		if (result != 0)
 			return result;
-		return BuildEnvironment.compareVersion(coordinate.getVersion(), other.coordinate.getVersion());
+		result = BuildEnvironment.compareVersion(coordinate.getVersion(), other.coordinate.getVersion());
+		if (result != 0) {
+			return result;
+		}
+		if (coordinate.classifier == null) {
+			if (other.coordinate.classifier != null) {
+				return -1;
+			}
+		}
+		else if (other.coordinate.classifier == null) {
+			return +1;
+		}
+		else {
+			result = coordinate.classifier.compareTo(other.coordinate.classifier);
+		}
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object other) {
+		if (other instanceof MavenProject) {
+			return compareTo((MavenProject) other) == 0;
+		}
+		return false;
+	}
+
+	@Override
+	public int hashCode() {
+		return coordinate.getKey().hashCode();
 	}
 
 	@Override

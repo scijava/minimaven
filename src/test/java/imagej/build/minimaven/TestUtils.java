@@ -41,8 +41,14 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.io.Writer;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.net.URL;
+import java.util.AbstractMap;
+import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
@@ -77,7 +83,8 @@ public class TestUtils {
 	 * @throws IOException
 	 */
 	protected static File createTemporaryDirectory(final String prefix) throws IOException {
-		return createTemporaryDirectory(prefix, getCallingClass(null));
+		final Map.Entry<Class<?>, String> calling = getCallingClass(null);
+		return createTemporaryDirectory(prefix, calling.getKey(), calling.getValue());
 	}
 
 	/**
@@ -95,7 +102,7 @@ public class TestUtils {
 	 * @throws IOException
 	 */
 	protected static File createTemporaryDirectory(final String prefix,
-		final Class<?> forClass) throws IOException
+		final Class<?> forClass, final String suffix) throws IOException
 	{
 		final URL directory = ClassUtils.getLocation(forClass);
 		if (directory != null && "file".equals(directory.getProtocol())) {
@@ -103,8 +110,10 @@ public class TestUtils {
 			if (path != null && path.endsWith("/target/test-classes/")) {
 				final File baseDirectory =
 					new File(path.substring(0, path.length() - 13));
-				final File file = File.createTempFile(prefix, "", baseDirectory);
-				if (file.delete() && file.mkdir()) return file;
+				final File file = new File(baseDirectory, prefix + suffix);
+				if (file.exists()) FileUtils.deleteRecursively(file);
+				if (!file.mkdir()) throw new IOException("Could not make directory " + file);
+				return file;
 			}
 		}
 		return FileUtils.createTemporaryDirectory(prefix, "");
@@ -122,7 +131,7 @@ public class TestUtils {
 	 * @param excluding the class to exclude (or null)
 	 * @return the class of the caller
 	 */
-	protected static Class<?> getCallingClass(final Class<?> excluding) {
+	protected static Map.Entry<Class<?>, String> getCallingClass(final Class<?> excluding) {
 		final String thisClassName = TestUtils.class.getName();
 		final String thisClassName2 = excluding == null ? null : excluding.getName();
 		final Thread currentThread = Thread.currentThread();
@@ -134,14 +143,17 @@ public class TestUtils {
 				continue;
 			}
 			final ClassLoader loader = currentThread.getContextClassLoader();
+			final Class<?> clazz;
 			try {
-				return loader.loadClass(element.getClassName());
+				clazz = loader.loadClass(element.getClassName());
 			}
 			catch (ClassNotFoundException e) {
 				throw new UnsupportedOperationException("Could not load " +
 					element.getClassName() + " with the current context class loader (" +
 					loader + ")!");
 			}
+			final String suffix = element.getMethodName() + "-L" + element.getLineNumber();
+			return new AbstractMap.SimpleEntry<Class<?>, String>(clazz, suffix);
 		}
 		throw new UnsupportedOperationException("No calling class outside " + thisClassName + " found!");
 	}
@@ -260,4 +272,24 @@ public class TestUtils {
 			throw new IOException(e);
 		}
 	}
+
+	/**
+	 * @return whether we have a real network connection at the moment (not just
+	 *         localhost)
+	 */
+	protected static boolean haveNetworkConnection() {
+		try {
+			final Enumeration<NetworkInterface> ifaces =
+				NetworkInterface.getNetworkInterfaces();
+			while (ifaces.hasMoreElements()) {
+				final Enumeration<InetAddress> addresses =
+					ifaces.nextElement().getInetAddresses();
+				while (addresses.hasMoreElements())
+					if (!addresses.nextElement().isLoopbackAddress()) return true;
+			}
+		}
+		catch (final SocketException e) { /* ignore */ }
+		return false;
+	}
+
 }
