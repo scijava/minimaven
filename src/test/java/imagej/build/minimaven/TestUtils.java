@@ -41,8 +41,12 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.io.Writer;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.net.URL;
 import java.util.AbstractMap;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -268,4 +272,24 @@ public class TestUtils {
 			throw new IOException(e);
 		}
 	}
+
+	/**
+	 * @return whether we have a real network connection at the moment (not just
+	 *         localhost)
+	 */
+	protected static boolean haveNetworkConnection() {
+		try {
+			final Enumeration<NetworkInterface> ifaces =
+				NetworkInterface.getNetworkInterfaces();
+			while (ifaces.hasMoreElements()) {
+				final Enumeration<InetAddress> addresses =
+					ifaces.nextElement().getInetAddresses();
+				while (addresses.hasMoreElements())
+					if (!addresses.nextElement().isLoopbackAddress()) return true;
+			}
+		}
+		catch (final SocketException e) { /* ignore */ }
+		return false;
+	}
+
 }
