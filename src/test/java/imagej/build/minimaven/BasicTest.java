@@ -215,4 +215,33 @@ public class BasicTest {
 		final File file2 = new File(jarsDir, artifactId + "-" + version + "-" + classifier + ".jar");
 		assertTrue(file2.exists());
 	}
+
+	@Test
+	public void testCleanImageJApp() throws Exception {
+		final MavenProject project = writeExampleProject();
+		final File ijDir = createTemporaryDirectory("ImageJ.app-");
+		final File jarsDir = new File(ijDir, "jars");
+		assertTrue(jarsDir.mkdir());
+		final File oldVersion = new File(jarsDir, "blub-0.0.5.jar");
+		writeFile(oldVersion, "old");
+		assertTrue(oldVersion.exists());
+		final File pluginsDir = new File(ijDir, "plugins");
+		assertTrue(pluginsDir.mkdir());
+		final File oldVersion2 = new File(pluginsDir, "blub-0.0.jar");
+		writeFile(oldVersion2, "old2");
+		assertTrue(oldVersion2.exists());
+		final File oldVersion3 = new File(pluginsDir, "blub-0.1.jar");
+		writeFile(oldVersion3, "old3");
+		assertTrue(oldVersion3.exists());
+		final File different = new File(pluginsDir, "blub-1.0.0-swing.jar");
+		writeFile(different, "different");
+		assertTrue(different.exists());
+
+		project.clean(ijDir);
+
+		assertFalse(oldVersion.exists());
+		assertFalse(oldVersion2.exists());
+		assertFalse(oldVersion3.exists());
+		assertTrue(different.exists());
+	}
 }
