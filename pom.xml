@@ -11,7 +11,7 @@
 
 	<groupId>org.scijava</groupId>
 	<artifactId>minimaven</artifactId>
-	<version>1.0.3-SNAPSHOT</version>
+	<version>1.0.3</version>
 
 	<name>Minimal support for Maven projects</name>
 	<description>A minimal build system interpreting Maven-style pom.xml files</description>
@@ -108,7 +108,7 @@
 	<scm>
 		<connection>scm:git:git://github.com/imagej/minimaven</connection>
 		<developerConnection>scm:git:git@github.com:imagej/minimaven</developerConnection>
-		<tag>HEAD</tag>
+		<tag>minimaven-1.0.3</tag>
 		<url>https://github.com/imagej/minimaven</url>
 	</scm>
 
