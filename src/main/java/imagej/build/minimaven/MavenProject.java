@@ -129,11 +129,18 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 		}
 	}
 
+
 	public void clean() throws IOException, ParserConfigurationException, SAXException {
+		final String ijDirProperty = expand(getProperty(BuildEnvironment.IMAGEJ_APP_DIRECTORY));
+		final File ijDir = ijDirProperty == null ? null : new File(ijDirProperty);
+		clean(ijDir != null && ijDir.isDirectory() ? ijDir : null);
+	}
+
+	public void clean(File ijDir) throws IOException, ParserConfigurationException, SAXException {
 		if ("pom".equals(getPackaging())) {
 			for (final MavenProject child : getChildren()) {
 				if (child == null) continue;
-				child.clean();
+				child.clean(ijDir);
 			}
 			return;
 		}
@@ -141,7 +148,7 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 			return;
 		for (MavenProject child : getDependencies(true, env.downloadAutomatically))
 			if (child != null)
-				child.clean();
+				child.clean(ijDir);
 		if (target.isDirectory())
 			BuildEnvironment.rmRF(target);
 		else if (target.exists())
@@ -149,6 +156,11 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 		File jar = getTarget();
 		if (jar.exists())
 			jar.delete();
+		final String fileName = jar.getName();
+		if (fileName.endsWith(".jar") && ijDir != null) {
+			deleteVersions(new File(ijDir, "plugins"), fileName, null);
+			deleteVersions(new File(ijDir, "jars"), fileName, null);
+		}
 	}
 
 	public void downloadDependencies() throws IOException, ParserConfigurationException, SAXException {
