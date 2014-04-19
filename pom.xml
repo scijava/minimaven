@@ -9,7 +9,7 @@
 		<relativePath />
 	</parent>
 
-	<groupId>net.imagej</groupId>
+	<groupId>org.scijava</groupId>
 	<artifactId>minimaven</artifactId>
 	<version>1.0.3-SNAPSHOT</version>
 
