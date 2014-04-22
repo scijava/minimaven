@@ -29,12 +29,15 @@
  * #L%
  */
 
-package imagej.build.minimaven;
+package org.scijava.minimaven;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParserFactory;
@@ -50,9 +53,9 @@ import org.xml.sax.helpers.DefaultHandler;
  * 
  * @author Johannes Schindelin
  */
-public class VersionPOMHandler extends DefaultHandler {
+public class SnapshotPOMHandler extends DefaultHandler {
 	protected String qName;
-	protected String version;
+	protected String snapshotVersion, timestamp, buildNumber;
 
 	@Override
 	public void startElement(String uri, String localName, String qName, Attributes attributes) {
@@ -64,24 +67,55 @@ public class VersionPOMHandler extends DefaultHandler {
 		this.qName = null;
 	}
 
+	private static Pattern versionPattern = Pattern.compile("(.*)-(\\d+\\.\\d+)-(\\d+)");
+
 	@Override
-	public void characters(char[] ch, int start, int length) {
-		if (qName != null && qName.equals("version")) {
-			version = new String(ch, start, length).trim();
+	public void characters(char[] ch, int start, int length) throws SAXException {
+		if (qName == null)
+			return;
+		else if (qName.equals("version")) {
+			String version = new String(ch, start, length).trim();
+			if (version.endsWith("-SNAPSHOT")) {
+				snapshotVersion = version.substring(0, version.length() - "-SNAPSHOT".length());
+			}
+			else {
+				final Matcher matcher = versionPattern.matcher(version);
+				if (!matcher.matches()) {
+					throw new SAXException("Unhandled version: " + version);
+				}
+				snapshotVersion = matcher.group(1);
+				timestamp = matcher.group(2);
+				buildNumber = matcher.group(3);
+			}
 		}
+		else if (qName.equals("timestamp"))
+			timestamp = new String(ch, start, length).trim();
+		else if (qName.equals("buildNumber"))
+			buildNumber = new String(ch, start, length).trim();
 	}
 
 	public static String parse(File xml) throws IOException, ParserConfigurationException, SAXException {
-		return parse(new FileInputStream(xml));
+		try {
+			return SnapshotPOMHandler.parse(new FileInputStream(xml));
+		}
+		catch (final FileNotFoundException e) {
+			throw e;
+		}
+		catch (final IOException e) {
+			throw new IOException("Error parsing " + xml, e);
+		}
+		catch (final SAXException e) {
+			throw new SAXException("Error parsing " + xml, e);
+		}
 	}
 
 	public static String parse(InputStream in) throws IOException, ParserConfigurationException, SAXException {
-		VersionPOMHandler handler = new VersionPOMHandler();
+		SnapshotPOMHandler handler = new SnapshotPOMHandler();
 		XMLReader reader = SAXParserFactory.newInstance().newSAXParser().getXMLReader();
 		reader.setContentHandler(handler);
 		reader.parse(new InputSource(in));
-		if (handler.version != null)
-			return handler.version;
-		throw new IOException("Missing version");
+		if (handler.snapshotVersion != null && handler.timestamp != null && handler.buildNumber != null)
+			return handler.snapshotVersion + "-" + handler.timestamp + "-" + handler.buildNumber;
+		throw new IOException("Missing timestamp/build number: " + handler.timestamp + ", " + handler.buildNumber);
 	}
 }

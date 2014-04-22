@@ -29,9 +29,9 @@
  * #L%
  */
 
-package imagej.build.minimaven;
+package org.scijava.minimaven;
 
-import imagej.build.minimaven.JavaCompiler.CompileError;
+import org.scijava.minimaven.JavaCompiler.CompileError;
 
 import java.io.BufferedReader;
 import java.io.File;

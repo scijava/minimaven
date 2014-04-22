@@ -29,18 +29,18 @@
  * #L%
  */
 
-package imagej.build.minimaven;
+package org.scijava.minimaven;
 
-import static imagej.build.minimaven.TestUtils.assertDependencies;
-import static imagej.build.minimaven.TestUtils.createTemporaryDirectory;
-import static imagej.build.minimaven.TestUtils.haveNetworkConnection;
-import static imagej.build.minimaven.TestUtils.read;
-import static imagej.build.minimaven.TestUtils.writeExampleProject;
-import static imagej.build.minimaven.TestUtils.writeFile;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
+import static org.scijava.minimaven.TestUtils.assertDependencies;
+import static org.scijava.minimaven.TestUtils.createTemporaryDirectory;
+import static org.scijava.minimaven.TestUtils.haveNetworkConnection;
+import static org.scijava.minimaven.TestUtils.read;
+import static org.scijava.minimaven.TestUtils.writeExampleProject;
+import static org.scijava.minimaven.TestUtils.writeFile;
 
 import java.io.File;
 import java.util.jar.JarFile;

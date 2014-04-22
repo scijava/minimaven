@@ -29,7 +29,7 @@
  * #L%
  */
 
-package imagej.build.minimaven;
+package org.scijava.minimaven;
 
 import static org.junit.Assert.assertTrue;
 

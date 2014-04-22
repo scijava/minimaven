@@ -29,11 +29,7 @@
  * #L%
  */
 
-package imagej.build;
-
-import imagej.build.minimaven.BuildEnvironment;
-import imagej.build.minimaven.Coordinate;
-import imagej.build.minimaven.MavenProject;
+package org.scijava.minimaven;
 
 import java.io.File;
 import java.io.PrintStream;
