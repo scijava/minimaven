@@ -18,12 +18,13 @@
 	<inceptionYear>2012</inceptionYear>
 
 	<dependencies>
+		<!-- SciJava dependencies -->
 		<dependency>
-			<groupId>${scijava-common.groupId}</groupId>
+			<groupId>org.scijava</groupId>
 			<artifactId>scijava-common</artifactId>
-			<version>${scijava-common.version}</version>
 		</dependency>
 
+		<!-- Test scope dependencies -->
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
