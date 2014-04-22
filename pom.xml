@@ -95,7 +95,7 @@
 
 	<issueManagement>
 		<system>GitHub Issues</system>
-		<url>https://github.com/scijava/scijava-common/issues</url>
+		<url>https://github.com/scijava/minimaven/issues</url>
 	</issueManagement>
 
 	<licenses>
@@ -106,10 +106,10 @@
 	</licenses>
 
 	<scm>
-		<connection>scm:git:git://github.com/imagej/minimaven</connection>
-		<developerConnection>scm:git:git@github.com:imagej/minimaven</developerConnection>
+		<connection>scm:git:git://github.com/scijava/minimaven</connection>
+		<developerConnection>scm:git:git@github.com:scijava/minimaven</developerConnection>
 		<tag>HEAD</tag>
-		<url>https://github.com/imagej/minimaven</url>
+		<url>https://github.com/scijava/minimaven</url>
 	</scm>
 
 </project>
