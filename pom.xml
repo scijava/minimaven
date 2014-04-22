@@ -14,7 +14,7 @@
 
 	<name>Minimal support for Maven projects</name>
 	<description>A minimal build system interpreting Maven-style pom.xml files</description>
-	<url>http://fiji.sc/MiniMaven/</url>
+	<url>http://fiji.sc/MiniMaven</url>
 	<inceptionYear>2012</inceptionYear>
 
 	<dependencies>
