@@ -400,6 +400,22 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 	 * @throws SAXException
 	 */
 	public void build(boolean makeJar, boolean forceBuild) throws CompileError, IOException, ParserConfigurationException, SAXException {
+		build(makeJar, forceBuild, false);
+	}
+
+	/**
+	 * Compiles the project and optionally builds the .jar artifact.
+	 * 
+	 * @param makeJar build a .jar file
+	 * @param forceBuild for recompilation even if the artifact is up-to-date
+	 * @param includeSources include sources if building a .jar file
+	 * 
+	 * @throws CompileError
+	 * @throws IOException
+	 * @throws ParserConfigurationException
+	 * @throws SAXException
+	 */
+	public void build(boolean makeJar, boolean forceBuild, boolean includeSources) throws CompileError, IOException, ParserConfigurationException, SAXException {
 		if (!forceBuild && upToDate(makeJar)) {
 			return;
 		}
@@ -494,6 +510,9 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 			final OutputStream jarOut = new FileOutputStream(getTarget());
 			JarOutputStream out = new JarOutputStream(jarOut);
 			addToJarRecursively(out, target, "");
+			if (includeSources) {
+				addToJarRecursively(out, getSourceDirectory(), "");
+			}
 			out.close();
 			jarOut.close();
 		}
