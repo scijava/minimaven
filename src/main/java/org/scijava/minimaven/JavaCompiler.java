@@ -36,7 +36,9 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.lang.reflect.Method;
+
 import org.scijava.util.FileUtils;
+import org.scijava.util.ProcessUtils;
 
 /**
  * TODO
@@ -133,18 +135,7 @@ public class JavaCompiler {
 						args[0]).getAbsolutePath();
 		}
 
-		Process proc = Runtime.getRuntime().exec(args, null, dir);
-		new ReadInto(proc.getErrorStream(), err).start();
-		new ReadInto(proc.getInputStream(), out).start();
-		try {
-			proc.waitFor();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-			throw new RuntimeException(e.getMessage());
-		}
-		int exitValue = proc.exitValue();
-		if (exitValue != 0)
-			throw new RuntimeException("Failed: " + exitValue);
+		ProcessUtils.exec(dir, err, out, args);
 	}
 
 	private static String quotables = " \"\'";
