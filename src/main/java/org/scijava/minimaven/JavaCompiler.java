@@ -98,7 +98,7 @@ public class JavaCompiler {
 			execute(newArguments, new File("."), verbose);
 		} catch (Exception e) {
 			throw new RuntimeException("Could not even fall back "
-				+ " to javac in the PATH");
+				+ " to javac in the PATH", e);
 		}
 	}
 
