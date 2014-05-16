@@ -41,7 +41,7 @@ import org.scijava.util.FileUtils;
 import org.scijava.util.ProcessUtils;
 
 /**
- * TODO
+ * Encapsulates the Java compiler, falling back to command-line {@code javac}.
  * 
  * @author Johannes Schindelin
  */
