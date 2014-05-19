@@ -432,7 +432,8 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 
 		// do not build aggregator projects
 		File source = getSourceDirectory();
-		if (!source.exists() && !new File(source.getParentFile(), "resources").exists())
+		final File resources = new File(source.getParentFile(), "resources");
+		if (!source.exists() && !resources.exists())
 			return;
 
 		target.mkdirs();
@@ -475,7 +476,7 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 				env.javac.call(array, env.verbose);
 		}
 
-		updateRecursively(new File(source.getParentFile(), "resources"), target, false);
+		updateRecursively(resources, target, false);
 
 		File pom = new File(directory, "pom.xml");
 		if (pom.exists()) {
