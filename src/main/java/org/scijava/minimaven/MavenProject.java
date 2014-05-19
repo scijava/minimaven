@@ -270,7 +270,9 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 	}
 
 	protected void addToJarRecursively(JarOutputStream out, File directory, String prefix) throws IOException {
-		for (File file : directory.listFiles())
+		final File[] list = directory.listFiles();
+		if (list == null) return;
+		for (File file : list)
 			if (file.isFile()) {
 				// For backwards-compatibility with the Fiji Updater, let's not include pom.properties files in the Updater itself
 				if (file.getAbsolutePath().endsWith("/Fiji_Updater/target/classes/META-INF/maven/sc.fiji/Fiji_Updater/pom.properties"))
