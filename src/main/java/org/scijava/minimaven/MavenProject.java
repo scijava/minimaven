@@ -270,7 +270,9 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 	}
 
 	protected void addToJarRecursively(JarOutputStream out, File directory, String prefix) throws IOException {
-		for (File file : directory.listFiles())
+		final File[] list = directory.listFiles();
+		if (list == null) return;
+		for (File file : list)
 			if (file.isFile()) {
 				// For backwards-compatibility with the Fiji Updater, let's not include pom.properties files in the Updater itself
 				if (file.getAbsolutePath().endsWith("/Fiji_Updater/target/classes/META-INF/maven/sc.fiji/Fiji_Updater/pom.properties"))
@@ -430,7 +432,8 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 
 		// do not build aggregator projects
 		File source = getSourceDirectory();
-		if (!source.exists() && !new File(source.getParentFile(), "resources").exists())
+		final File resources = new File(source.getParentFile(), "resources");
+		if (!source.exists() && !resources.exists())
 			return;
 
 		target.mkdirs();
@@ -473,7 +476,7 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 				env.javac.call(array, env.verbose);
 		}
 
-		updateRecursively(new File(source.getParentFile(), "resources"), target, false);
+		updateRecursively(resources, target, false);
 
 		File pom = new File(directory, "pom.xml");
 		if (pom.exists()) {
@@ -511,7 +514,12 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 			JarOutputStream out = new JarOutputStream(jarOut);
 			addToJarRecursively(out, target, "");
 			if (includeSources) {
-				addToJarRecursively(out, getSourceDirectory(), "");
+				if (pom.exists()) {
+					out.putNextEntry(new ZipEntry("pom.xml"));
+					BuildEnvironment.copy(new FileInputStream(pom), out, false);
+				}
+				addToJarRecursively(out, source, "src/main/java/");
+				addToJarRecursively(out, resources, "src/main/resources/");
 			}
 			out.close();
 			jarOut.close();
