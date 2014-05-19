@@ -514,7 +514,12 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 			JarOutputStream out = new JarOutputStream(jarOut);
 			addToJarRecursively(out, target, "");
 			if (includeSources) {
-				addToJarRecursively(out, getSourceDirectory(), "");
+				if (pom.exists()) {
+					out.putNextEntry(new ZipEntry("pom.xml"));
+					BuildEnvironment.copy(new FileInputStream(pom), out, false);
+				}
+				addToJarRecursively(out, source, "src/main/java/");
+				addToJarRecursively(out, resources, "src/main/resources/");
 			}
 			out.close();
 			jarOut.close();
