@@ -1025,7 +1025,19 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 			dependency.version = "1.0";
 		if (dependency.version == null && "provided".equals(dependency.scope))
 			return null;
-		if (dependency.groupId == null) throw new IllegalArgumentException("Need fully qualified GAVs: " + dependency.getGAV());
+		// work around MiniMaven's limitation to use only a single version of pom-scijava
+		if (dependency.groupId == null && dependency.artifactId != null) {
+			if (dependency.artifactId.matches("scijava-common|minimaven")) {
+				dependency.groupId = "org.scijava";
+			} else if (dependency.artifactId.matches("imglib2.*")) {
+				dependency.groupId = "net.imglib2";
+			} else if (dependency.artifactId.matches("scifio")) {
+				dependency.groupId = "io.scif";
+			}
+		}
+		if (dependency.groupId == null) {
+			throw new IllegalArgumentException("Need fully qualified GAVs: " + dependency.getGAV());
+		}
 		if (dependency.artifactId.equals(expand(coordinate.artifactId)) &&
 				dependency.groupId.equals(expand(coordinate.groupId)) &&
 				dependency.version.equals(expand(coordinate.version)))
