@@ -30,8 +30,6 @@
 
 package org.scijava.minimaven;
 
-import org.scijava.minimaven.JavaCompiler.CompileError;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -59,10 +57,10 @@ import java.util.zip.ZipEntry;
 
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.scijava.minimaven.JavaCompiler.CompileError;
 import org.scijava.util.FileUtils;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
-import org.xml.sax.helpers.DefaultHandler;
 
 /**
  * This class represents a parsed pom.xml file.
@@ -72,7 +70,7 @@ import org.xml.sax.helpers.DefaultHandler;
  * 
  * @author Johannes Schindelin
  */
-public class MavenProject extends DefaultHandler implements Comparable<MavenProject> {
+public class MavenProject extends AbstractPOMHandler implements Comparable<MavenProject> {
 	protected final BuildEnvironment env;
 	protected boolean buildFromSource, built;
 	protected File directory, target;
@@ -1146,13 +1144,15 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 
 	@Override
 	public void startElement(String uri, String name, String qualifiedName, Attributes attributes) {
+		super.startElement(uri, name, qualifiedName, attributes);
 		prefix += ">" + qualifiedName;
 		if (env.debug)
 			env.err.println("start(" + uri + ", " + name + ", " + qualifiedName + ", " + toString(attributes) + ")");
 	}
 
 	@Override
-	public void endElement(String uri, String name, String qualifiedName) {
+	public void endElement(String uri, String name, String qualifiedName) throws SAXException {
+		super.endElement(uri, name, qualifiedName);
 		if (prefix.equals(">project>dependencies>dependency") || (isCurrentProfile && prefix.equals(">project>profiles>profile>dependencies>dependency"))) {
 			if (env.debug)
 				env.err.println("Adding dependendency " + latestDependency + " to " + this);
@@ -1187,8 +1187,8 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 	}
 
 	@Override
-	public void characters(char[] buffer, int offset, int length) {
-		String string = new String(buffer, offset, length);
+	protected void processCharacters(final StringBuilder sb) {
+		String string = sb.toString();
 		if (env.debug)
 			env.err.println("characters: " + string + " (prefix: " + prefix + ")");
 

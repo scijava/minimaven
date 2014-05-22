@@ -30,44 +30,48 @@
 
 package org.scijava.minimaven;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.parsers.SAXParserFactory;
-
-import org.xml.sax.InputSource;
+import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
-import org.xml.sax.XMLReader;
+import org.xml.sax.helpers.DefaultHandler;
 
 /**
- * TODO
+ * Abstract base class for POM SAX handlers. Aggregates multi-chunk character
+ * streams into a single string.
  * 
- * @author Johannes Schindelin
+ * @author Curtis Rueden
  */
-public class VersionPOMHandler extends AbstractPOMHandler {
-	protected String version;
+public abstract class AbstractPOMHandler extends DefaultHandler {
+
+	protected String qName;
+	private StringBuilder characters;
 
 	@Override
-	protected void processCharacters(final StringBuilder sb) {
-		if (qName != null && qName.equals("version")) {
-			version = sb.toString().trim();
+	public void startElement(final String uri, final String localName,
+		final String qName, final Attributes attributes)
+	{
+		characters = null;
+		this.qName = qName;
+	}
+
+	@Override
+	public void endElement(final String uri, final String localName,
+		final String qName) throws SAXException
+	{
+		if (characters != null) {
+			processCharacters(characters);
 		}
+		this.qName = null;
 	}
 
-	public static String parse(File xml) throws IOException, ParserConfigurationException, SAXException {
-		return parse(new FileInputStream(xml));
+	@Override
+	public void characters(final char[] ch, final int start, final int length)
+		throws SAXException
+	{
+		if (characters == null) characters = new StringBuilder();
+		characters.append(ch, start, length);
 	}
 
-	public static String parse(InputStream in) throws IOException, ParserConfigurationException, SAXException {
-		VersionPOMHandler handler = new VersionPOMHandler();
-		XMLReader reader = SAXParserFactory.newInstance().newSAXParser().getXMLReader();
-		reader.setContentHandler(handler);
-		reader.parse(new InputSource(in));
-		if (handler.version != null)
-			return handler.version;
-		throw new IOException("Missing version");
-	}
+	protected abstract void processCharacters(final StringBuilder sb)
+		throws SAXException;
+
 }

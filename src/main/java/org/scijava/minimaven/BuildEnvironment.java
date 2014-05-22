@@ -412,25 +412,27 @@ public class BuildEnvironment {
 	protected boolean isAggregatorPOM(final InputStream in) {
 		final RuntimeException yes = new RuntimeException(), no = new RuntimeException();
 		try {
-			DefaultHandler handler = new DefaultHandler() {
+			DefaultHandler handler = new AbstractPOMHandler() {
 				protected int level = 0;
 
 				@Override
 				public void startElement(String uri, String localName, String qName, Attributes attributes) {
+					super.startElement(uri, localName, qName, attributes);
 					if ((level == 0 && "project".equals(qName)) || (level == 1 && "packaging".equals(qName)))
 						level++;
 				}
 
 				@Override
-				public void endElement(String uri, String localName, String qName) {
+				public void endElement(String uri, String localName, String qName) throws SAXException {
+					super.endElement(uri, localName, qName);
 					if ((level == 1 && "project".equals(qName)) || (level == 2 && "packaging".equals(qName)))
 						level--;
 				}
 
 				@Override
-				public void characters(char[] ch, int start, int length) {
+				public void processCharacters(final StringBuilder sb) {
 					if (level == 2)
-						throw "pom".equals(new String(ch, start, length)) ? yes : no;
+						throw "pom".equals(sb.toString()) ? yes : no;
 				}
 			};
 			XMLReader reader = SAXParserFactory.newInstance().newSAXParser().getXMLReader();

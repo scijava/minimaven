@@ -41,39 +41,26 @@ import java.util.regex.Pattern;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParserFactory;
 
-import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
-import org.xml.sax.helpers.DefaultHandler;
 
 /**
  * TODO
  * 
  * @author Johannes Schindelin
  */
-public class SnapshotPOMHandler extends DefaultHandler {
-	protected String qName;
+public class SnapshotPOMHandler extends AbstractPOMHandler {
 	protected String snapshotVersion, timestamp, buildNumber;
-
-	@Override
-	public void startElement(String uri, String localName, String qName, Attributes attributes) {
-		this.qName = qName;
-	}
-
-	@Override
-	public void endElement(String uri, String localName, String qName) {
-		this.qName = null;
-	}
 
 	private static Pattern versionPattern = Pattern.compile("(.*)-(\\d+\\.\\d+)-(\\d+)");
 
 	@Override
-	public void characters(char[] ch, int start, int length) throws SAXException {
+	protected void processCharacters(final StringBuilder sb) throws SAXException {
 		if (qName == null)
 			return;
 		else if (qName.equals("version")) {
-			String version = new String(ch, start, length).trim();
+			String version = sb.toString().trim();
 			if (version.endsWith("-SNAPSHOT")) {
 				snapshotVersion = version.substring(0, version.length() - "-SNAPSHOT".length());
 			}
@@ -88,9 +75,9 @@ public class SnapshotPOMHandler extends DefaultHandler {
 			}
 		}
 		else if (qName.equals("timestamp"))
-			timestamp = new String(ch, start, length).trim();
+			timestamp = sb.toString().trim();
 		else if (qName.equals("buildNumber"))
-			buildNumber = new String(ch, start, length).trim();
+			buildNumber = sb.toString().trim();
 	}
 
 	public static String parse(File xml) throws IOException, ParserConfigurationException, SAXException {
