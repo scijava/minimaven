@@ -876,12 +876,15 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 	}
 
 	private String findVersion(final String groupId, final String artifactId) {
+		if (groupId == null || artifactId == null) {
+			return null;
+		}
 		final String[] result = { null };
 		queryDependencyManagement(new DependencyManagementCallback() {
 
 			@Override
 			public boolean coordinate(MavenProject project, Coordinate coordinate) {
-				 if (coordinate.version == null ||
+				 if (coordinate == null || coordinate.version == null ||
 							!groupId.equals(project.expand(coordinate.groupId)) ||
 							!artifactId.equals(project.expand(coordinate.artifactId))) {
 					 return false;
