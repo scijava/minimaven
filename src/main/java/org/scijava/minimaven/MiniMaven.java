@@ -135,9 +135,12 @@ public class MiniMaven {
 				pom.copyDependencies(pom.getTarget(), true);
 			return;
 		}
-		else if (command.equals("install")) {
+		else if (command.equals("install")) try {
 			pom.buildAndInstall();
 			return;
+		} catch (Throwable t) {
+			t.printStackTrace();
+			System.exit(1);
 		}
 		if (command.equals("clean"))
 			pom.clean();

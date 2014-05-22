@@ -876,12 +876,15 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 	}
 
 	private String findVersion(final String groupId, final String artifactId) {
+		if (groupId == null || artifactId == null) {
+			return null;
+		}
 		final String[] result = { null };
 		queryDependencyManagement(new DependencyManagementCallback() {
 
 			@Override
 			public boolean coordinate(MavenProject project, Coordinate coordinate) {
-				 if (coordinate.version == null ||
+				 if (coordinate == null || coordinate.version == null ||
 							!groupId.equals(project.expand(coordinate.groupId)) ||
 							!artifactId.equals(project.expand(coordinate.artifactId))) {
 					 return false;
@@ -1011,7 +1014,7 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 	protected void getRepositories(Set<String> result) {
 		// add a default to the root
 		if (parent == null) {
-			result.add("http://maven.imagej.net/content/groups/public/");
+			result.add("http://maven.imagej.net/service/local/repo_groups/public/content/");
 			result.add("http://repo1.maven.org/maven2/");
 		}
 		result.addAll(repositories);
@@ -1033,6 +1036,10 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 				dependency.groupId = "net.imglib2";
 			} else if (dependency.artifactId.matches("scifio")) {
 				dependency.groupId = "io.scif";
+			} else  if (dependency.artifactId.matches("jama")) {
+				dependency.groupId = "gov.nist.math";
+			} else  if (dependency.artifactId.matches("jpedalSTD")) {
+				dependency.groupId = "org.jpedal";
 			}
 		}
 		if (dependency.groupId == null) {
@@ -1079,8 +1086,11 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 			if (dependency.version.endsWith("-SNAPSHOT")) {
 				final File xml = new File(path, "maven-metadata-snapshot.xml");
 				if (env.verbose) env.err.println("Parsing " + xml);
-				if (xml.exists()) {
+				if (xml.exists()) try {
 					dependency.setSnapshotVersion(SnapshotPOMHandler.parse(xml));
+				} catch (final SAXException e) {
+					env.err.println("[WARNING] problem parsing " + xml);
+					e.printStackTrace(env.err);
 				} else {
 					final File xml2 = new File(path, "maven-metadata-imagej.snapshots.xml");
 					if (env.verbose) env.err.println("Parsing " + xml2);
