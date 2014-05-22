@@ -95,7 +95,7 @@ public class SnapshotPOMHandler extends DefaultHandler {
 
 	public static String parse(File xml) throws IOException, ParserConfigurationException, SAXException {
 		try {
-			return SnapshotPOMHandler.parse(new FileInputStream(xml));
+			return SnapshotPOMHandler.parse(xml.getAbsolutePath(), new FileInputStream(xml));
 		}
 		catch (final FileNotFoundException e) {
 			throw e;
@@ -109,10 +109,16 @@ public class SnapshotPOMHandler extends DefaultHandler {
 	}
 
 	public static String parse(InputStream in) throws IOException, ParserConfigurationException, SAXException {
+		return parse(null, in);
+	}
+
+	private static String parse(final String systemId, final InputStream in) throws IOException, ParserConfigurationException, SAXException {
 		SnapshotPOMHandler handler = new SnapshotPOMHandler();
 		XMLReader reader = SAXParserFactory.newInstance().newSAXParser().getXMLReader();
 		reader.setContentHandler(handler);
-		reader.parse(new InputSource(in));
+		final InputSource source = new InputSource(in);
+		if (systemId != null) source.setSystemId(systemId);
+		reader.parse(source);
 		if (handler.snapshotVersion != null && handler.timestamp != null && handler.buildNumber != null)
 			return handler.snapshotVersion + "-" + handler.timestamp + "-" + handler.buildNumber;
 		throw new IOException("Missing timestamp/build number: " + handler.timestamp + ", " + handler.buildNumber);
