@@ -1079,8 +1079,11 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 			if (dependency.version.endsWith("-SNAPSHOT")) {
 				final File xml = new File(path, "maven-metadata-snapshot.xml");
 				if (env.verbose) env.err.println("Parsing " + xml);
-				if (xml.exists()) {
+				if (xml.exists()) try {
 					dependency.setSnapshotVersion(SnapshotPOMHandler.parse(xml));
+				} catch (final SAXException e) {
+					env.err.println("[WARNING] problem parsing " + xml);
+					e.printStackTrace(env.err);
 				} else {
 					final File xml2 = new File(path, "maven-metadata-imagej.snapshots.xml");
 					if (env.verbose) env.err.println("Parsing " + xml2);
