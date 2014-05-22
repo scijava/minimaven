@@ -179,11 +179,7 @@ public class BuildEnvironment {
 			pom.sourceDirectory = parent.sourceDirectory;
 			pom.includeImplementationBuild = parent.includeImplementationBuild;
 		}
-		XMLReader reader = SAXParserFactory.newInstance().newSAXParser().getXMLReader();
-		reader.setContentHandler(pom);
-		//reader.setXMLErrorHandler(...);
-		reader.parse(new InputSource(in));
-		in.close();
+		pom.parse(in);
 		if (pom.coordinate.artifactId == null || pom.coordinate.artifactId.equals(""))
 			throw new SAXException("Missing artifactId: " + new File(directory, "pom.xml"));
 		if (pom.coordinate.groupId == null || pom.coordinate.groupId.equals(""))
