@@ -43,13 +43,16 @@ import org.xml.sax.helpers.DefaultHandler;
 public abstract class AbstractPOMHandler extends DefaultHandler {
 
 	protected String qName;
-	private StringBuilder characters;
+	private StringBuilder characters = new StringBuilder();
+	private boolean gotCharacters;
 
 	@Override
 	public void startElement(final String uri, final String localName,
 		final String qName, final Attributes attributes)
 	{
-		characters = null;
+		// Note: We ignore characters before any opening tag.
+		characters.setLength(0);
+		gotCharacters = false;
 		this.qName = qName;
 	}
 
@@ -57,8 +60,10 @@ public abstract class AbstractPOMHandler extends DefaultHandler {
 	public void endElement(final String uri, final String localName,
 		final String qName) throws SAXException
 	{
-		if (characters != null) {
+		if (gotCharacters) {
 			processCharacters(characters);
+			characters.setLength(0);
+			gotCharacters = false;
 		}
 		this.qName = null;
 	}
@@ -67,8 +72,8 @@ public abstract class AbstractPOMHandler extends DefaultHandler {
 	public void characters(final char[] ch, final int start, final int length)
 		throws SAXException
 	{
-		if (characters == null) characters = new StringBuilder();
 		characters.append(ch, start, length);
+		gotCharacters = true;
 	}
 
 	protected abstract void processCharacters(final StringBuilder sb)
