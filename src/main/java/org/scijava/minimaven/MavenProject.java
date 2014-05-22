@@ -1011,7 +1011,7 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 	protected void getRepositories(Set<String> result) {
 		// add a default to the root
 		if (parent == null) {
-			result.add("http://maven.imagej.net/content/groups/public/");
+			result.add("http://maven.imagej.net/service/local/repo_groups/public/content/");
 			result.add("http://repo1.maven.org/maven2/");
 		}
 		result.addAll(repositories);
