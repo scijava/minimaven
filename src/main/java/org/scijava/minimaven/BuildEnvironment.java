@@ -81,6 +81,7 @@ public class BuildEnvironment {
 	protected Stack<File> multiProjectRoots = new Stack<File>();
 	protected Set<File> excludedFromMultiProjects = new HashSet<File>();
 	protected final static File mavenRepository;
+	private final static boolean isWindows;
 
 	static {
 		File repository = new File(System.getProperty("user.home"), ".m2/repository");
@@ -90,6 +91,9 @@ public class BuildEnvironment {
 			e.printStackTrace();
 		}
 		mavenRepository = repository;
+
+		String osName = System.getProperty("os.name").toLowerCase();
+		isWindows = osName.startsWith("win");
 	}
 
 	public void setVerbose(boolean verbose) {
@@ -399,8 +403,19 @@ public class BuildEnvironment {
 			}
 		}
 		fileStream.close();
-		file.renameTo(new File(directory, fileName));
-		sha1.renameTo(new File(directory, fileName + ".sha1"));
+		rename(file, new File(directory, fileName));
+		rename(sha1, new File(directory, fileName + ".sha1"));
+	}
+
+	protected void rename(final File source, final File target) throws IOException {
+		if (isWindows && target.exists()) {
+			if (!target.delete()) {
+				throw new IOException("Could not delete " + target);
+			}
+		}
+		if (!source.renameTo(target)) {
+			throw new IOException("Could not rename " + source + " to " + target);
+		}
 	}
 
 	protected boolean isAggregatorPOM(File xml) {
