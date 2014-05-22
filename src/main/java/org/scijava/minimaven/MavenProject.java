@@ -998,7 +998,6 @@ public class MavenProject implements Comparable<MavenProject> {
 				dependency.groupId.equals(expand(coordinate.groupId)) &&
 				dependency.version.equals(expand(coordinate.version)))
 			return this;
-		// fall back to Fiji's modules/, $HOME/.m2/repository/ and Fiji's jars/ and plugins/ directories
 		String key = dependency.getKey();
 		if (env.localPOMCache.containsKey(key)) {
 			MavenProject result = env.localPOMCache.get(key); // may be null
@@ -1006,6 +1005,7 @@ public class MavenProject implements Comparable<MavenProject> {
 				return result;
 		}
 
+		// fall back to Fiji's modules/, $HOME/.m2/repository/ and Fiji's jars/ and plugins/ directories
 		MavenProject pom = findInMultiProjects(dependency);
 		if (pom != null)
 			return pom;
