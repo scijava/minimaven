@@ -1005,7 +1005,7 @@ public class MavenProject implements Comparable<MavenProject> {
 				return result;
 		}
 
-		// fall back to Fiji's modules/, $HOME/.m2/repository/ and Fiji's jars/ and plugins/ directories
+		// fall back to Fiji's modules/ and $HOME/.m2/repository/
 		MavenProject pom = findInMultiProjects(dependency);
 		if (pom != null)
 			return pom;
