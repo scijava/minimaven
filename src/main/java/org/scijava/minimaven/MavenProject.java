@@ -30,8 +30,6 @@
 
 package org.scijava.minimaven;
 
-import org.scijava.minimaven.JavaCompiler.CompileError;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -58,11 +56,14 @@ import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParserFactory;
 
+import org.scijava.minimaven.JavaCompiler.CompileError;
 import org.scijava.util.FileUtils;
 import org.xml.sax.Attributes;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
-import org.xml.sax.helpers.DefaultHandler;
+import org.xml.sax.XMLReader;
 
 /**
  * This class represents a parsed pom.xml file.
@@ -72,7 +73,7 @@ import org.xml.sax.helpers.DefaultHandler;
  * 
  * @author Johannes Schindelin
  */
-public class MavenProject extends DefaultHandler implements Comparable<MavenProject> {
+public class MavenProject implements Comparable<MavenProject> {
 	protected final BuildEnvironment env;
 	protected boolean buildFromSource, built;
 	protected File directory, target;
@@ -96,12 +97,6 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 	private BooleanState upToDate = BooleanState.UNKNOWN,
 		jarUpToDate = BooleanState.UNKNOWN;
 
-	// only used during parsing
-	protected String prefix = "";
-	protected Coordinate latestDependency = new Coordinate();
-	protected boolean isCurrentProfile;
-	protected String currentPluginName;
-	private Coordinate latestExclusion = new Coordinate();
 	private static Name CREATED_BY = new Name("Created-By");
 
 	protected MavenProject addModule(String name) throws IOException, ParserConfigurationException, SAXException {
@@ -1049,7 +1044,6 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 				dependency.groupId.equals(expand(coordinate.groupId)) &&
 				dependency.version.equals(expand(coordinate.version)))
 			return this;
-		// fall back to Fiji's modules/, $HOME/.m2/repository/ and Fiji's jars/ and plugins/ directories
 		String key = dependency.getKey();
 		if (env.localPOMCache.containsKey(key)) {
 			MavenProject result = env.localPOMCache.get(key); // may be null
@@ -1057,6 +1051,7 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 				return result;
 		}
 
+		// fall back to Fiji's modules/ and $HOME/.m2/repository/
 		MavenProject pom = findInMultiProjects(dependency);
 		if (pom != null)
 			return pom;
@@ -1189,182 +1184,6 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 		}
 	}
 
-	// XML parsing
-
-	@Override
-	public void endDocument() {
-		if (!properties.containsKey("project.groupId"))
-			properties.put("project.groupId", coordinate.groupId);
-		if (!properties.containsKey("project.version"))
-			properties.put("project.version", coordinate.getVersion());
-	}
-
-	@Override
-	public void startElement(String uri, String name, String qualifiedName, Attributes attributes) {
-		prefix += ">" + qualifiedName;
-		if (env.debug)
-			env.err.println("start(" + uri + ", " + name + ", " + qualifiedName + ", " + toString(attributes) + ")");
-	}
-
-	@Override
-	public void endElement(String uri, String name, String qualifiedName) {
-		if (prefix.equals(">project>dependencies>dependency") || (isCurrentProfile && prefix.equals(">project>profiles>profile>dependencies>dependency"))) {
-			if (env.debug)
-				env.err.println("Adding dependendency " + latestDependency + " to " + this);
-			if (coordinate.artifactId.equals("javassist") && latestDependency.artifactId.equals("tools"))
-				latestDependency.optional = false;
-			dependencies.add(latestDependency);
-			latestDependency = new Coordinate();
-		}
-		else if (prefix.equals(">project>dependencyManagement>dependencies>dependency") || (isCurrentProfile && prefix.equals(">project>profiles>profile>dependencyManagement>dependencies>dependency"))) {
-			if (env.debug)
-				env.err.println("Adding dependendency " + latestDependency + " to " + this);
-			dependencyManagement.add(latestDependency);
-			latestDependency = new Coordinate();
-		}
-		else if (prefix.equals(">project>dependencies>dependency>exclusions>exclusion") ||
-				(isCurrentProfile && prefix.equals(">project>profiles>profile>dependencies>dependency>exclusions>exclusion"))) {
-			if (latestDependency.exclusions == null) {
-				latestDependency.exclusions = new HashSet<String>();
-			}
-			final String groupId = latestExclusion.getGroupId();
-			final String artifactId = latestExclusion.getArtifactId();
-			if (groupId != null && artifactId != null) {
-				latestDependency.exclusions.add(groupId + ":" + artifactId);
-			}
-			latestExclusion = new Coordinate();
-		}
-		else if (prefix.equals(">project>profiles>profile"))
-			isCurrentProfile = false;
-		prefix = prefix.substring(0, prefix.length() - 1 - qualifiedName.length());
-		if (env.debug)
-			env.err.println("end(" + uri + ", " + name + ", " + qualifiedName + ")");
-	}
-
-	@Override
-	public void characters(char[] buffer, int offset, int length) {
-		String string = new String(buffer, offset, length);
-		if (env.debug)
-			env.err.println("characters: " + string + " (prefix: " + prefix + ")");
-
-		String prefix = this.prefix;
-		if (isCurrentProfile)
-			prefix = ">project" + prefix.substring(">project>profiles>profile".length());
-
-		if (prefix.equals(">project>groupId"))
-			coordinate.groupId = string;
-		else if (prefix.equals(">project>artifactId"))
-			coordinate.artifactId = string;
-		else if (prefix.equals(">project>version"))
-			coordinate.version = string;
-		else if (prefix.equals(">project>packaging"))
-			packaging = string;
-		else if (prefix.equals(">project>modules"))
-			buildFromSource = true; // might not be building a target
-		else if (prefix.equals(">project>modules>module"))
-			modules.add(string);
-		else if (prefix.startsWith(">project>properties>"))
-			properties.put(prefix.substring(">project>properties>".length()), string);
-		else if (prefix.equals(">project>dependencies>dependency>groupId") || prefix.equals(">project>dependencyManagement>dependencies>dependency>groupId"))
-			latestDependency.groupId = string;
-		else if (prefix.equals(">project>dependencies>dependency>artifactId") || prefix.equals(">project>dependencyManagement>dependencies>dependency>artifactId"))
-			latestDependency.artifactId = string;
-		else if (prefix.equals(">project>dependencies>dependency>version") || prefix.equals(">project>dependencyManagement>dependencies>dependency>version"))
-			latestDependency.version = string;
-		else if (prefix.equals(">project>dependencies>dependency>scope") || prefix.equals(">project>dependencyManagement>dependencies>dependency>scope"))
-			latestDependency.scope = string;
-		else if (prefix.equals(">project>dependencies>dependency>optional") || prefix.equals(">project>dependencyManagement>dependencies>dependency>optional"))
-			latestDependency.optional = string.equalsIgnoreCase("true");
-		else if (prefix.equals(">project>dependencies>dependency>systemPath") || prefix.equals(">project>dependencyManagement>dependencies>dependency>systemPath"))
-			latestDependency.systemPath = string;
-		else if (prefix.equals(">project>dependencies>dependency>classifier") || prefix.equals(">project>dependencyManagement>dependencies>dependency>classifier"))
-			latestDependency.classifier = string;
-		// for Bio-Formats' broken Maven dependencies, we need to support exclusions
-		else if (prefix.equals(">project>dependencies>dependency>exclusions>exclusion>groupId"))
-			latestExclusion.groupId = string;
-		else if (prefix.equals(">project>dependencies>dependency>exclusions>exclusion>artifactId"))
-			latestExclusion.artifactId = string;
-		else if (prefix.equals(">project>profiles>profile>id")) {
-			isCurrentProfile = (!System.getProperty("os.name").equals("Mac OS X") && "javac".equals(string)) || (coordinate.artifactId.equals("javassist") && (string.equals("jdk16") || string.equals("default-tools")));
-			if (env.debug)
-				env.err.println((isCurrentProfile ? "Activating" : "Ignoring") + " profile " + string);
-		}
-		else if (!isCurrentProfile && prefix.equals(">project>profiles>profile>activation>os>name"))
-			isCurrentProfile = string.equalsIgnoreCase(System.getProperty("os.name"));
-		else if (!isCurrentProfile && prefix.equals(">project>profiles>profile>activation>os>family")) {
-			String osName = System.getProperty("os.name").toLowerCase();
-			if (string.equalsIgnoreCase("windows")) {
-				isCurrentProfile = osName.startsWith("win");
-			} else if (string.toLowerCase().startsWith("mac")) {
-				isCurrentProfile = osName.startsWith("mac");
-			} else if (string.equalsIgnoreCase("unix")) {
-				isCurrentProfile = !osName.startsWith("win") && !osName.startsWith("mac");
-			} else {
-				env.err.println("Ignoring unknown OS family: " + string);
-				isCurrentProfile = false;
-			}
-		}
-		else if (!isCurrentProfile && prefix.equals(">project>profiles>profile>activation>file>exists"))
-			isCurrentProfile = new File(directory, string).exists();
-		else if (!isCurrentProfile && prefix.equals(">project>profiles>profile>activation>activeByDefault"))
-			isCurrentProfile = "true".equalsIgnoreCase(string);
-		else if (!isCurrentProfile && prefix.equals(">project>profiles>profile>activation>property>name")) {
-			boolean negate = false;
-			if (string.startsWith("!")) {
-				negate = true;
-				string = string.substring(1);
-			}
-			isCurrentProfile = negate ^ (expand("${" + string + "}") != null);
-		}
-		else if (prefix.equals(">project>repositories>repository>url"))
-			repositories.add(string);
-		else if (prefix.equals(">project>build>sourceDirectory"))
-			sourceDirectory = string;
-		else if (prefix.startsWith(">project>parent>")) {
-			if (parentCoordinate == null)
-				parentCoordinate = new Coordinate();
-			if (prefix.equals(">project>parent>groupId")) {
-				if (coordinate.groupId == null)
-					coordinate.groupId = string;
-				if (parentCoordinate.groupId == null)
-					parentCoordinate.groupId = string;
-				else
-					checkParentTag("groupId", parentCoordinate.groupId, string);
-			}
-			else if (prefix.equals(">project>parent>artifactId")) {
-				if (parentCoordinate.artifactId == null)
-					parentCoordinate.artifactId = string;
-				else
-					checkParentTag("artifactId", parentCoordinate.artifactId, string);
-			}
-			else if (prefix.equals(">project>parent>version")) {
-				if (coordinate.version == null)
-					coordinate.version = string;
-				if (parentCoordinate.version == null)
-					parentCoordinate.version = string;
-				else
-					checkParentTag("version", parentCoordinate.version, string);
-			}
-		}
-		else if (prefix.equals(">project>build>plugins>plugin>artifactId")) {
-			currentPluginName = string;
-			if (string.equals("buildnumber-maven-plugin"))
-				includeImplementationBuild = true;
-		}
-		else if (prefix.equals(">project>build>plugins>plugin>configuration>source") && "maven-compiler-plugin".equals(currentPluginName))
-			sourceVersion = string;
-		else if (prefix.equals(">project>build>plugins>plugin>configuration>target") && "maven-compiler-plugin".equals(currentPluginName))
-			targetVersion = string;
-		else if (prefix.equals(">project>build>plugins>plugin>configuration>archive>manifest>mainClass") && "maven-jar-plugin".equals(currentPluginName))
-			mainClass = string;
-		/* This would be needed to compile clojure.jar. However, it does not work because we do not support the antrun plugin
-		else if (prefix.equals(">project>build>plugins>plugin>executions>execution>configuration>sources>source") && "build-helper-maven-plugin".equals(currentPluginName))
-			sourceDirectory = string;
-		*/
-		else if (env.debug)
-			env.err.println("Ignoring " + prefix);
-	}
-
 	protected void checkParentTag(String tag, String string1, String string2) {
 		if (!env.debug) return;
 		String expanded1 = expand(string1);
@@ -1372,17 +1191,6 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 		if ((expanded1 == null && expanded2 != null) ||
 				(expanded1 != null && !expanded1.equals(expanded2)))
 			env.err.println("Warning: " + tag + " mismatch in " + directory + "'s parent: " + string1 + " != " + string2);
-	}
-
-	public String toString(Attributes attributes) {
-		StringBuilder builder = new StringBuilder();
-		builder.append("[ ");
-		for (int i = 0; i < attributes.getLength(); i++)
-			builder.append(attributes.getQName(i))
-				. append("='").append(attributes.getValue(i))
-				. append("' ");
-		builder.append("]");
-		return builder.toString();
 	}
 
 	@Override
@@ -1440,5 +1248,214 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 					builder.append(indent).append("  (null)\n");
 				else
 					child.append(builder, indent + "  ");
+	}
+
+	void parse(InputStream in) throws IOException, SAXException,
+			ParserConfigurationException {
+		XMLReader reader = SAXParserFactory.newInstance().newSAXParser().getXMLReader();
+		reader.setContentHandler(new XMLHandler());
+		//reader.setXMLErrorHandler(...);
+		reader.parse(new InputSource(in));
+		in.close();
+	}
+
+	private class XMLHandler extends AbstractPOMHandler {
+		// only used during parsing
+		protected String prefix = "";
+		protected Coordinate latestDependency = new Coordinate();
+		protected boolean isCurrentProfile;
+		protected String currentPluginName;
+		private Coordinate latestExclusion = new Coordinate();
+
+		// XML parsing
+
+		@Override
+		public void endDocument() {
+			if (!properties.containsKey("project.groupId"))
+				properties.put("project.groupId", coordinate.groupId);
+			if (!properties.containsKey("project.version"))
+				properties.put("project.version", coordinate.getVersion());
+		}
+
+		@Override
+		public void startElement(String uri, String name, String qualifiedName, Attributes attributes) {
+			super.startElement(uri, name, qualifiedName, attributes);
+			prefix += ">" + qualifiedName;
+			if (env.debug)
+				env.err.println("start(" + uri + ", " + name + ", " + qualifiedName + ", " + toString(attributes) + ")");
+		}
+
+		@Override
+		public void endElement(String uri, String name, String qualifiedName) throws SAXException {
+			super.endElement(uri, name, qualifiedName);
+			if (prefix.equals(">project>dependencies>dependency") || (isCurrentProfile && prefix.equals(">project>profiles>profile>dependencies>dependency"))) {
+				if (env.debug)
+					env.err.println("Adding dependendency " + latestDependency + " to " + this);
+				if (coordinate.artifactId.equals("javassist") && latestDependency.artifactId.equals("tools"))
+					latestDependency.optional = false;
+				dependencies.add(latestDependency);
+				latestDependency = new Coordinate();
+			}
+			else if (prefix.equals(">project>dependencyManagement>dependencies>dependency") || (isCurrentProfile && prefix.equals(">project>profiles>profile>dependencyManagement>dependencies>dependency"))) {
+				if (env.debug)
+					env.err.println("Adding dependendency " + latestDependency + " to " + this);
+				dependencyManagement.add(latestDependency);
+				latestDependency = new Coordinate();
+			}
+			else if (prefix.equals(">project>dependencies>dependency>exclusions>exclusion") ||
+					(isCurrentProfile && prefix.equals(">project>profiles>profile>dependencies>dependency>exclusions>exclusion"))) {
+				if (latestDependency.exclusions == null) {
+					latestDependency.exclusions = new HashSet<String>();
+				}
+				final String groupId = latestExclusion.getGroupId();
+				final String artifactId = latestExclusion.getArtifactId();
+				if (groupId != null && artifactId != null) {
+					latestDependency.exclusions.add(groupId + ":" + artifactId);
+				}
+				latestExclusion = new Coordinate();
+			}
+			else if (prefix.equals(">project>profiles>profile"))
+				isCurrentProfile = false;
+			prefix = prefix.substring(0, prefix.length() - 1 - qualifiedName.length());
+			if (env.debug)
+				env.err.println("end(" + uri + ", " + name + ", " + qualifiedName + ")");
+		}
+
+		@Override
+		protected void processCharacters(final StringBuilder sb) {
+			String string = sb.toString();
+			if (env.debug)
+				env.err.println("characters: " + string + " (prefix: " + prefix + ")");
+
+			String prefix = this.prefix;
+			if (isCurrentProfile)
+				prefix = ">project" + prefix.substring(">project>profiles>profile".length());
+
+			if (prefix.equals(">project>groupId"))
+				coordinate.groupId = string;
+			else if (prefix.equals(">project>artifactId"))
+				coordinate.artifactId = string;
+			else if (prefix.equals(">project>version"))
+				coordinate.version = string;
+			else if (prefix.equals(">project>packaging"))
+				packaging = string;
+			else if (prefix.equals(">project>modules"))
+				buildFromSource = true; // might not be building a target
+			else if (prefix.equals(">project>modules>module"))
+				modules.add(string);
+			else if (prefix.startsWith(">project>properties>"))
+				properties.put(prefix.substring(">project>properties>".length()), string);
+			else if (prefix.equals(">project>dependencies>dependency>groupId") || prefix.equals(">project>dependencyManagement>dependencies>dependency>groupId"))
+				latestDependency.groupId = string;
+			else if (prefix.equals(">project>dependencies>dependency>artifactId") || prefix.equals(">project>dependencyManagement>dependencies>dependency>artifactId"))
+				latestDependency.artifactId = string;
+			else if (prefix.equals(">project>dependencies>dependency>version") || prefix.equals(">project>dependencyManagement>dependencies>dependency>version"))
+				latestDependency.version = string;
+			else if (prefix.equals(">project>dependencies>dependency>scope") || prefix.equals(">project>dependencyManagement>dependencies>dependency>scope"))
+				latestDependency.scope = string;
+			else if (prefix.equals(">project>dependencies>dependency>optional") || prefix.equals(">project>dependencyManagement>dependencies>dependency>optional"))
+				latestDependency.optional = string.equalsIgnoreCase("true");
+			else if (prefix.equals(">project>dependencies>dependency>systemPath") || prefix.equals(">project>dependencyManagement>dependencies>dependency>systemPath"))
+				latestDependency.systemPath = string;
+			else if (prefix.equals(">project>dependencies>dependency>classifier") || prefix.equals(">project>dependencyManagement>dependencies>dependency>classifier"))
+				latestDependency.classifier = string;
+			// for Bio-Formats' broken Maven dependencies, we need to support exclusions
+			else if (prefix.equals(">project>dependencies>dependency>exclusions>exclusion>groupId"))
+				latestExclusion.groupId = string;
+			else if (prefix.equals(">project>dependencies>dependency>exclusions>exclusion>artifactId"))
+				latestExclusion.artifactId = string;
+			else if (prefix.equals(">project>profiles>profile>id")) {
+				isCurrentProfile = (!System.getProperty("os.name").equals("Mac OS X") && "javac".equals(string)) || (coordinate.artifactId.equals("javassist") && (string.equals("jdk16") || string.equals("default-tools")));
+				if (env.debug)
+					env.err.println((isCurrentProfile ? "Activating" : "Ignoring") + " profile " + string);
+			}
+			else if (!isCurrentProfile && prefix.equals(">project>profiles>profile>activation>os>name"))
+				isCurrentProfile = string.equalsIgnoreCase(System.getProperty("os.name"));
+			else if (!isCurrentProfile && prefix.equals(">project>profiles>profile>activation>os>family")) {
+				String osName = System.getProperty("os.name").toLowerCase();
+				if (string.equalsIgnoreCase("windows")) {
+					isCurrentProfile = osName.startsWith("win");
+				} else if (string.toLowerCase().startsWith("mac")) {
+					isCurrentProfile = osName.startsWith("mac");
+				} else if (string.equalsIgnoreCase("unix")) {
+					isCurrentProfile = !osName.startsWith("win") && !osName.startsWith("mac");
+				} else {
+					env.err.println("Ignoring unknown OS family: " + string);
+					isCurrentProfile = false;
+				}
+			}
+			else if (!isCurrentProfile && prefix.equals(">project>profiles>profile>activation>file>exists"))
+				isCurrentProfile = new File(directory, string).exists();
+			else if (!isCurrentProfile && prefix.equals(">project>profiles>profile>activation>activeByDefault"))
+				isCurrentProfile = "true".equalsIgnoreCase(string);
+			else if (!isCurrentProfile && prefix.equals(">project>profiles>profile>activation>property>name")) {
+				boolean negate = false;
+				if (string.startsWith("!")) {
+					negate = true;
+					string = string.substring(1);
+				}
+				isCurrentProfile = negate ^ (expand("${" + string + "}") != null);
+			}
+			else if (prefix.equals(">project>repositories>repository>url"))
+				repositories.add(string);
+			else if (prefix.equals(">project>build>sourceDirectory"))
+				sourceDirectory = string;
+			else if (prefix.startsWith(">project>parent>")) {
+				if (parentCoordinate == null)
+					parentCoordinate = new Coordinate();
+				if (prefix.equals(">project>parent>groupId")) {
+					if (coordinate.groupId == null)
+						coordinate.groupId = string;
+					if (parentCoordinate.groupId == null)
+						parentCoordinate.groupId = string;
+					else
+						checkParentTag("groupId", parentCoordinate.groupId, string);
+				}
+				else if (prefix.equals(">project>parent>artifactId")) {
+					if (parentCoordinate.artifactId == null)
+						parentCoordinate.artifactId = string;
+					else
+						checkParentTag("artifactId", parentCoordinate.artifactId, string);
+				}
+				else if (prefix.equals(">project>parent>version")) {
+					if (coordinate.version == null)
+						coordinate.version = string;
+					if (parentCoordinate.version == null)
+						parentCoordinate.version = string;
+					else
+						checkParentTag("version", parentCoordinate.version, string);
+				}
+			}
+			else if (prefix.equals(">project>build>plugins>plugin>artifactId")) {
+				currentPluginName = string;
+				if (string.equals("buildnumber-maven-plugin"))
+					includeImplementationBuild = true;
+			}
+			else if (prefix.equals(">project>build>plugins>plugin>configuration>source") && "maven-compiler-plugin".equals(currentPluginName))
+				sourceVersion = string;
+			else if (prefix.equals(">project>build>plugins>plugin>configuration>target") && "maven-compiler-plugin".equals(currentPluginName))
+				targetVersion = string;
+			else if (prefix.equals(">project>build>plugins>plugin>configuration>archive>manifest>mainClass") && "maven-jar-plugin".equals(currentPluginName))
+				mainClass = string;
+			/* This would be needed to compile clojure.jar. However, it does not work because we do not support the antrun plugin
+			else if (prefix.equals(">project>build>plugins>plugin>executions>execution>configuration>sources>source") && "build-helper-maven-plugin".equals(currentPluginName))
+				sourceDirectory = string;
+			*/
+			else if (env.debug)
+				env.err.println("Ignoring " + prefix);
+		}
+
+		private String toString(Attributes attributes) {
+			StringBuilder builder = new StringBuilder();
+			builder.append("[ ");
+			for (int i = 0; i < attributes.getLength(); i++)
+				builder.append(attributes.getQName(i))
+					. append("='").append(attributes.getValue(i))
+					. append("' ");
+			builder.append("]");
+			return builder.toString();
+		}
+
+
 	}
 }
