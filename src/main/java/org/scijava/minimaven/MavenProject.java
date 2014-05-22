@@ -1036,6 +1036,10 @@ public class MavenProject extends DefaultHandler implements Comparable<MavenProj
 				dependency.groupId = "net.imglib2";
 			} else if (dependency.artifactId.matches("scifio")) {
 				dependency.groupId = "io.scif";
+			} else  if (dependency.artifactId.matches("jama")) {
+				dependency.groupId = "gov.nist.math";
+			} else  if (dependency.artifactId.matches("jpedalSTD")) {
+				dependency.groupId = "org.jpedal";
 			}
 		}
 		if (dependency.groupId == null) {
