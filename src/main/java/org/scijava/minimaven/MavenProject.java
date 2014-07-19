@@ -1035,6 +1035,8 @@ public class MavenProject implements Comparable<MavenProject> {
 				dependency.groupId = "gov.nist.math";
 			} else  if (dependency.artifactId.matches("jpedalSTD")) {
 				dependency.groupId = "org.jpedal";
+			} else if (dependency.artifactId.equals("jep")) {
+				dependency.groupId = "org.scijava";
 			}
 		}
 		if (dependency.groupId == null) {
