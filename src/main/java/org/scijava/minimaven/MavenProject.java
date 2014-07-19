@@ -336,6 +336,12 @@ public class MavenProject implements Comparable<MavenProject> {
 				if (child == null) continue;
 				child.buildAndInstall(ijDir, forceBuild);
 			}
+			final Set<MavenProject> dependencies = getDependencies(true, false, "test", "provided", "system");
+			if (dependencies != null && dependencies.size() > 0) {
+				for (final MavenProject project : getDependencies(true, false, "test", "provided", "system")) {
+					project.copyToImageJAppDirectory(ijDir, true);
+				}
+			}
 			return;
 		}
 
