@@ -977,7 +977,7 @@ public class MavenProject implements Comparable<MavenProject> {
 			if (key.equals("bio-formats.version"))
 				return "4.4-SNAPSHOT";
 			if (key.equals("imagej.groupId"))
-				return "imagej";
+				return "net.imagej";
 			return null;
 		}
 		return parent.getProperty(key);
