@@ -336,6 +336,12 @@ public class MavenProject implements Comparable<MavenProject> {
 				if (child == null) continue;
 				child.buildAndInstall(ijDir, forceBuild);
 			}
+			final Set<MavenProject> dependencies = getDependencies(true, false, "test", "provided", "system");
+			if (dependencies != null && dependencies.size() > 0) {
+				for (final MavenProject project : getDependencies(true, false, "test", "provided", "system")) {
+					project.copyToImageJAppDirectory(ijDir, true);
+				}
+			}
 			return;
 		}
 
@@ -977,7 +983,7 @@ public class MavenProject implements Comparable<MavenProject> {
 			if (key.equals("bio-formats.version"))
 				return "4.4-SNAPSHOT";
 			if (key.equals("imagej.groupId"))
-				return "imagej";
+				return "net.imagej";
 			return null;
 		}
 		return parent.getProperty(key);
@@ -1035,6 +1041,8 @@ public class MavenProject implements Comparable<MavenProject> {
 				dependency.groupId = "gov.nist.math";
 			} else  if (dependency.artifactId.matches("jpedalSTD")) {
 				dependency.groupId = "org.jpedal";
+			} else if (dependency.artifactId.equals("jep")) {
+				dependency.groupId = "org.scijava";
 			}
 		}
 		if (dependency.groupId == null) {
