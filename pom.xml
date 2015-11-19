@@ -58,16 +58,6 @@ Wisconsin-Madison.</organizationName>
 		</plugins>
 	</build>
 
-	<mailingLists>
-		<mailingList>
-			<name>SciJava</name>
-			<subscribe>https://groups.google.com/group/scijava</subscribe>
-			<unsubscribe>https://groups.google.com/group/scijava</unsubscribe>
-			<post>scijava@googlegroups.com</post>
-			<archive>https://groups.google.com/group/scijava</archive>
-		</mailingList>
-	</mailingLists>
-
 	<developers>
 		<developer>
 			<id>dscho</id>
