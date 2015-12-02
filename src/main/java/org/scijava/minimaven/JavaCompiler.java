@@ -39,6 +39,7 @@ import java.lang.reflect.Method;
 
 import javax.tools.ToolProvider;
 
+import org.scijava.util.ClassUtils;
 import org.scijava.util.FileUtils;
 import org.scijava.util.ProcessUtils;
 
@@ -46,6 +47,7 @@ import org.scijava.util.ProcessUtils;
  * Encapsulates the Java compiler, falling back to command-line {@code javac}.
  * 
  * @author Johannes Schindelin
+ * @author Mark Hiner
  */
 public class JavaCompiler {
 	protected PrintStream err, out;
@@ -64,9 +66,15 @@ public class JavaCompiler {
 			try {
 				javax.tools.JavaCompiler sysc = ToolProvider.getSystemJavaCompiler();
 				if (sysc != null) {
+					err.print("Found tools compiler: " + sysc.getClass());
+					err.print(ClassUtils.getLocation(sysc.getClass()));
 					sysc.run(null,  out, err, arguments);
 					return;
 				}
+				else {
+					err.println("No java.tools.JavaCompiler available. Checking for explicit javac.");
+				}
+
 				if (javac == null) {
 					JarClassLoader loader = discoverJavac();
 					Class<?> main = loader == null ?
