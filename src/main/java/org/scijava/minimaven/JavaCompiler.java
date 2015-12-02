@@ -37,6 +37,8 @@ import java.io.PrintWriter;
 import java.io.Writer;
 import java.lang.reflect.Method;
 
+import javax.tools.ToolProvider;
+
 import org.scijava.util.FileUtils;
 import org.scijava.util.ProcessUtils;
 
@@ -60,6 +62,11 @@ public class JavaCompiler {
 			boolean verbose) throws CompileError {
 		synchronized(this) {
 			try {
+				javax.tools.JavaCompiler sysc = ToolProvider.getSystemJavaCompiler();
+				if (sysc != null) {
+					sysc.run(null,  out, err, arguments);
+					return;
+				}
 				if (javac == null) {
 					JarClassLoader loader = discoverJavac();
 					Class<?> main = loader == null ?
