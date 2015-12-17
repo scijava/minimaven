@@ -474,7 +474,7 @@ public class MavenProject implements Comparable<MavenProject> {
 			}
 			String[] array = arguments.toArray(new String[arguments.size()]);
 			if (env.javac != null)
-				env.javac.call(array, env.verbose);
+				env.javac.call(array, env.verbose, env.debug);
 		}
 
 		updateRecursively(resources, target, false);
