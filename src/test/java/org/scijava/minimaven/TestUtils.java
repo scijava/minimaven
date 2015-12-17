@@ -76,14 +76,17 @@ public class TestUtils {
 	 * created in the <i>target/</i> directory corresponding to the calling class
 	 * instead of <i>/tmp/</i>.
 	 * </p>
-	 * 
+	 *
 	 * @param prefix the prefix for the directory's name
 	 * @return the reference to the newly-created temporary directory
 	 * @throws IOException
 	 */
-	protected static File createTemporaryDirectory(final String prefix) throws IOException {
+	protected static File createTemporaryDirectory(final String prefix)
+		throws IOException
+	{
 		final Map.Entry<Class<?>, String> calling = getCallingClass(null);
-		return createTemporaryDirectory(prefix, calling.getKey(), calling.getValue());
+		return createTemporaryDirectory(prefix, calling.getKey(), calling
+			.getValue());
 	}
 
 	/**
@@ -93,7 +96,7 @@ public class TestUtils {
 	 * created in the corresponding <i>target/</i> directory instead of
 	 * <i>/tmp/</i>.
 	 * </p>
-	 * 
+	 *
 	 * @param prefix the prefix for the directory's name
 	 * @param forClass the class for context (to determine whether there's a
 	 *          <i>target/<i> directory)
@@ -107,11 +110,13 @@ public class TestUtils {
 		if (directory != null && "file".equals(directory.getProtocol())) {
 			final String path = directory.getPath();
 			if (path != null && path.endsWith("/target/test-classes/")) {
-				final File baseDirectory =
-					new File(path.substring(0, path.length() - 13));
+				final File baseDirectory = new File(path.substring(0, path.length() -
+					13));
 				final File file = new File(baseDirectory, prefix + suffix);
 				if (file.exists()) FileUtils.deleteRecursively(file);
-				if (!file.mkdir()) throw new IOException("Could not make directory " + file);
+				if (!file.mkdir()) {
+					throw new IOException("Could not make directory " + file);
+				}
 				return file;
 			}
 		}
@@ -123,22 +128,26 @@ public class TestUtils {
 	 * <p>
 	 * Sometimes it is convenient to determine the caller's context, e.g. to
 	 * determine whether running in a maven-surefire-plugin context (in which case
-	 * the location of the caller's class would end in
-	 * <i>target/test-classes/</i>).
+	 * the location of the caller's class would end in <i>target/test-classes/</i>
+	 * ).
 	 * </p>
-	 * 
+	 *
 	 * @param excluding the class to exclude (or null)
 	 * @return the class of the caller
 	 */
-	protected static Map.Entry<Class<?>, String> getCallingClass(final Class<?> excluding) {
+	protected static Map.Entry<Class<?>, String> getCallingClass(
+		final Class<?> excluding)
+	{
 		final String thisClassName = TestUtils.class.getName();
-		final String thisClassName2 = excluding == null ? null : excluding.getName();
+		final String thisClassName2 = excluding == null ? null : excluding
+			.getName();
 		final Thread currentThread = Thread.currentThread();
 		for (final StackTraceElement element : currentThread.getStackTrace()) {
 			final String thatClassName = element.getClassName();
 			if (thatClassName == null || thatClassName.equals(thisClassName) ||
-				thatClassName.equals(thisClassName2) ||
-				thatClassName.startsWith("java.lang.")) {
+				thatClassName.equals(thisClassName2) || thatClassName.startsWith(
+					"java.lang."))
+			{
 				continue;
 			}
 			final ClassLoader loader = currentThread.getContextClassLoader();
@@ -146,28 +155,29 @@ public class TestUtils {
 			try {
 				clazz = loader.loadClass(element.getClassName());
 			}
-			catch (ClassNotFoundException e) {
-				throw new UnsupportedOperationException("Could not load " +
-					element.getClassName() + " with the current context class loader (" +
+			catch (final ClassNotFoundException e) {
+				throw new UnsupportedOperationException("Could not load " + element
+					.getClassName() + " with the current context class loader (" +
 					loader + ")!");
 			}
-			final String suffix = element.getMethodName() + "-L" + element.getLineNumber();
+			final String suffix = element.getMethodName() + "-L" + element
+				.getLineNumber();
 			return new AbstractMap.SimpleEntry<Class<?>, String>(clazz, suffix);
 		}
-		throw new UnsupportedOperationException("No calling class outside " + thisClassName + " found!");
+		throw new UnsupportedOperationException("No calling class outside " +
+			thisClassName + " found!");
 	}
 
 	protected static String read(final JarFile jar, final String path)
-			throws IOException {
+		throws IOException
+	{
 		final ZipEntry entry = jar.getEntry(path);
 		final InputStream in = jar.getInputStream(entry);
-		final BufferedReader reader = new BufferedReader(new InputStreamReader(
-				in));
+		final BufferedReader reader = new BufferedReader(new InputStreamReader(in));
 		final StringBuilder builder = new StringBuilder();
 		for (;;) {
 			final String line = reader.readLine();
-			if (line == null)
-				break;
+			if (line == null) break;
 			builder.append(line).append("\n");
 		}
 		reader.close();
@@ -175,7 +185,8 @@ public class TestUtils {
 	}
 
 	protected static void writeFile(final File file, final String contents)
-			throws IOException {
+		throws IOException
+	{
 		final File dir = file.getParentFile();
 		if (dir != null && !dir.isDirectory() && !dir.mkdirs())
 			throw new IOException("Could not make " + dir);
@@ -185,36 +196,44 @@ public class TestUtils {
 	}
 
 	protected static void prettyPrintXML(final String string, final Writer writer)
-			throws IOException {
+		throws IOException
+	{
 		try {
 			final DocumentBuilder builder = DocumentBuilderFactory.newInstance()
-					.newDocumentBuilder();
+				.newDocumentBuilder();
 			final InputSource in = new InputSource(new StringReader(string));
 			final Document document = builder.parse(in);
 
 			final Transformer transformer = TransformerFactory.newInstance()
-					.newTransformer();
+				.newTransformer();
 			transformer.setOutputProperty(OutputKeys.INDENT, "yes");
 			transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
-			final String XALAN_INDENT_AMOUNT = "{http://xml.apache.org/xslt}"
-					+ "indent-amount";
+			final String XALAN_INDENT_AMOUNT = "{http://xml.apache.org/xslt}" +
+				"indent-amount";
 			transformer.setOutputProperty(XALAN_INDENT_AMOUNT, "4");
-			StreamResult result = new StreamResult(writer);
-			DOMSource source = new DOMSource(document);
+			final StreamResult result = new StreamResult(writer);
+			final DOMSource source = new DOMSource(document);
 			transformer.transform(source, result);
-		} catch (IOException e) {
+		}
+		catch (final IOException e) {
 			throw e;
-		} catch (Exception e) {
+		}
+		catch (final Exception e) {
 			throw new IOException(e);
 		}
 	}
 
-	protected static void assertDependencies(final MavenProject project, final String... gavs) throws IOException, ParserConfigurationException, SAXException {
+	protected static void assertDependencies(final MavenProject project,
+		final String... gavs) throws IOException, ParserConfigurationException,
+			SAXException
+	{
 		final Set<String> haystack = new HashSet<String>();
 		for (final String gav : gavs) {
 			haystack.add(gav);
 		}
-		for (final MavenProject dependency : project.getDependencies(true, false, "test")) {
+		for (final MavenProject dependency : project.getDependencies(true, false,
+			"test"))
+		{
 			final String gav = dependency.getGAV();
 			assertTrue("Unexpected dependency: " + gav, haystack.contains(gav));
 			haystack.remove(gav);
@@ -222,24 +241,26 @@ public class TestUtils {
 		assertTrue("Missing: " + haystack.toString(), haystack.isEmpty());
 	}
 
-	protected final static String pomPrefix = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
-	+ "<project xmlns=\"http://maven.apache.org/POM/4.0.0\" "
-	+ "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
-	+ "xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 "
-	+ "http://maven.apache.org/xsd/maven-4.0.0.xsd\">"
-	+ "<modelVersion>4.0.0</modelVersion>";
+	protected final static String pomPrefix =
+		"<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+			"<project xmlns=\"http://maven.apache.org/POM/4.0.0\" " +
+			"xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" " +
+			"xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 " +
+			"http://maven.apache.org/xsd/maven-4.0.0.xsd\">" +
+			"<modelVersion>4.0.0</modelVersion>";
 
-	protected static MavenProject writeExampleProject(String... projectConfiguration) throws IOException {
+	protected static MavenProject writeExampleProject(
+		final String... projectConfiguration) throws IOException
+	{
 		return TestUtils.writeExampleProject(null, projectConfiguration);
 	}
 
-	protected static MavenProject writeExampleProject(BuildEnvironment env, String... projectConfiguration) throws IOException {
+	protected static MavenProject writeExampleProject(BuildEnvironment env,
+		String... projectConfiguration) throws IOException
+	{
 		if (projectConfiguration == null || projectConfiguration.length == 0) {
-			projectConfiguration = new String[] {
-					"<groupId>test</groupId>",
-					"<artifactId>blub</artifactId>",
-					"<version>1.0.0</version>"
-			};
+			projectConfiguration = new String[] { "<groupId>test</groupId>",
+				"<artifactId>blub</artifactId>", "<version>1.0.0</version>" };
 		}
 
 		final StringBuilder builder = new StringBuilder();
@@ -250,8 +271,7 @@ public class TestUtils {
 		builder.append("</project>");
 
 		final File tmp = createTemporaryDirectory("minimaven-");
-		writeFile(new File(tmp, "src/main/resources/version.txt"),
-				"1.0.0\n");
+		writeFile(new File(tmp, "src/main/resources/version.txt"), "1.0.0\n");
 
 		final File pom = new File(tmp, "pom.xml");
 		final Writer out = new FileWriter(pom);
@@ -264,10 +284,10 @@ public class TestUtils {
 		try {
 			return env.parse(pom);
 		}
-		catch (IOException e) {
+		catch (final IOException e) {
 			throw e;
 		}
-		catch (Exception e) {
+		catch (final Exception e) {
 			throw new IOException(e);
 		}
 	}
@@ -278,11 +298,11 @@ public class TestUtils {
 	 */
 	protected static boolean haveNetworkConnection() {
 		try {
-			final Enumeration<NetworkInterface> ifaces =
-				NetworkInterface.getNetworkInterfaces();
+			final Enumeration<NetworkInterface> ifaces = NetworkInterface
+				.getNetworkInterfaces();
 			while (ifaces.hasMoreElements()) {
-				final Enumeration<InetAddress> addresses =
-					ifaces.nextElement().getInetAddresses();
+				final Enumeration<InetAddress> addresses = ifaces.nextElement()
+					.getInetAddresses();
 				while (addresses.hasMoreElements())
 					if (!addresses.nextElement().isLoopbackAddress()) return true;
 			}

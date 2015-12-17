@@ -47,22 +47,24 @@ import org.xml.sax.XMLReader;
 
 /**
  * TODO
- * 
+ *
  * @author Johannes Schindelin
  */
 public class SnapshotPOMHandler extends AbstractPOMHandler {
+
 	protected String snapshotVersion, timestamp, buildNumber;
 
-	private static Pattern versionPattern = Pattern.compile("(.*)-(\\d+\\.\\d+)-(\\d+)");
+	private static Pattern versionPattern = Pattern.compile(
+		"(.*)-(\\d+\\.\\d+)-(\\d+)");
 
 	@Override
 	protected void processCharacters(final StringBuilder sb) throws SAXException {
-		if (qName == null)
-			return;
+		if (qName == null) return;
 		else if (qName.equals("version")) {
-			String version = sb.toString().trim();
+			final String version = sb.toString().trim();
 			if (version.endsWith("-SNAPSHOT")) {
-				snapshotVersion = version.substring(0, version.length() - "-SNAPSHOT".length());
+				snapshotVersion = version.substring(0, version.length() - "-SNAPSHOT"
+					.length());
 			}
 			else {
 				final Matcher matcher = versionPattern.matcher(version);
@@ -74,15 +76,16 @@ public class SnapshotPOMHandler extends AbstractPOMHandler {
 				buildNumber = matcher.group(3);
 			}
 		}
-		else if (qName.equals("timestamp"))
-			timestamp = sb.toString().trim();
-		else if (qName.equals("buildNumber"))
-			buildNumber = sb.toString().trim();
+		else if (qName.equals("timestamp")) timestamp = sb.toString().trim();
+		else if (qName.equals("buildNumber")) buildNumber = sb.toString().trim();
 	}
 
-	public static String parse(File xml) throws IOException, ParserConfigurationException, SAXException {
+	public static String parse(final File xml) throws IOException,
+		ParserConfigurationException, SAXException
+	{
 		try {
-			return SnapshotPOMHandler.parse(xml.getAbsolutePath(), new FileInputStream(xml));
+			return SnapshotPOMHandler.parse(xml.getAbsolutePath(),
+				new FileInputStream(xml));
 		}
 		catch (final FileNotFoundException e) {
 			throw e;
@@ -95,19 +98,29 @@ public class SnapshotPOMHandler extends AbstractPOMHandler {
 		}
 	}
 
-	public static String parse(InputStream in) throws IOException, ParserConfigurationException, SAXException {
+	public static String parse(final InputStream in) throws IOException,
+		ParserConfigurationException, SAXException
+	{
 		return parse(null, in);
 	}
 
-	private static String parse(final String systemId, final InputStream in) throws IOException, ParserConfigurationException, SAXException {
-		SnapshotPOMHandler handler = new SnapshotPOMHandler();
-		XMLReader reader = SAXParserFactory.newInstance().newSAXParser().getXMLReader();
+	private static String parse(final String systemId, final InputStream in)
+		throws IOException, ParserConfigurationException, SAXException
+	{
+		final SnapshotPOMHandler handler = new SnapshotPOMHandler();
+		final XMLReader reader = SAXParserFactory.newInstance().newSAXParser()
+			.getXMLReader();
 		reader.setContentHandler(handler);
 		final InputSource source = new InputSource(in);
 		if (systemId != null) source.setSystemId(systemId);
 		reader.parse(source);
-		if (handler.snapshotVersion != null && handler.timestamp != null && handler.buildNumber != null)
-			return handler.snapshotVersion + "-" + handler.timestamp + "-" + handler.buildNumber;
-		throw new IOException("Missing timestamp/build number: " + handler.timestamp + ", " + handler.buildNumber);
+		if (handler.snapshotVersion != null && handler.timestamp != null &&
+			handler.buildNumber != null)
+		{
+			return handler.snapshotVersion + "-" + handler.timestamp + "-" +
+				handler.buildNumber;
+		}
+		throw new IOException("Missing timestamp/build number: " +
+			handler.timestamp + ", " + handler.buildNumber);
 	}
 }

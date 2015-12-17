@@ -44,10 +44,11 @@ import java.util.jar.JarFile;
 
 /**
  * TODO
- * 
+ *
  * @author Johannes Schindelin
  */
 public class JarClassLoader extends ClassLoader {
+
 	Map<String, JarFile> jarFilesMap;
 	List<String> jarFilesNames;
 	List<JarFile> jarFilesObjects;
@@ -61,16 +62,16 @@ public class JarClassLoader extends ClassLoader {
 		cache = new HashMap<String, Class<?>>();
 	}
 
-	public JarClassLoader(String... paths) throws IOException {
+	public JarClassLoader(final String... paths) throws IOException {
 		this();
-		for (String path : paths)
+		for (final String path : paths) {
 			add(path);
+		}
 	}
 
-	public synchronized void add(String path) throws IOException {
-		if (jarFilesMap.containsKey(path))
-			return;
-		JarFile jar = new JarFile(path);
+	public synchronized void add(final String path) throws IOException {
+		if (jarFilesMap.containsKey(path)) return;
+		final JarFile jar = new JarFile(path);
 		/* n.b. We don't need to synchronize
 		   fetching since nothing is ever removed */
 		jarFilesMap.put(path, jar);
@@ -79,19 +80,17 @@ public class JarClassLoader extends ClassLoader {
 	}
 
 	@Override
-	public URL getResource(String name) {
-		int n = jarFilesNames.size();
+	public URL getResource(final String name) {
+		final int n = jarFilesNames.size();
 		for (int i = n - 1; i >= 0; --i) {
-			JarFile jar = jarFilesObjects.get(i);
-			String file = jarFilesNames.get(i);
-			if (jar.getEntry(name) == null)
-				continue;
-			String url = "file:///"
-				+ file.replace('\\', '/')
-				+ "!/" + name;
+			final JarFile jar = jarFilesObjects.get(i);
+			final String file = jarFilesNames.get(i);
+			if (jar.getEntry(name) == null) continue;
+			final String url = "file:///" + file.replace('\\', '/') + "!/" + name;
 			try {
 				return new URL("jar", "", url);
-			} catch (MalformedURLException e) {
+			}
+			catch (final MalformedURLException e) {
 				// fall through
 			}
 		}
@@ -99,91 +98,89 @@ public class JarClassLoader extends ClassLoader {
 	}
 
 	@Override
-	public InputStream getResourceAsStream(String name) {
+	public InputStream getResourceAsStream(final String name) {
 		return getResourceAsStream(name, false);
 	}
 
-	public InputStream getResourceAsStream(String name,
-			boolean nonSystemOnly) {
-		int n = jarFilesNames.size();
+	public InputStream getResourceAsStream(final String name,
+		final boolean nonSystemOnly)
+	{
+		final int n = jarFilesNames.size();
 		for (int i = n - 1; i >= 0; --i) {
-			JarFile jar = jarFilesObjects.get(i);
-			JarEntry entry = jar.getJarEntry(name);
-			if (entry == null)
-				continue;
+			final JarFile jar = jarFilesObjects.get(i);
+			final JarEntry entry = jar.getJarEntry(name);
+			if (entry == null) continue;
 			try {
 				return jar.getInputStream(entry);
-			} catch (IOException e) {
+			}
+			catch (final IOException e) {
 				// fall through
 			}
 		}
-		if (nonSystemOnly)
-			return null;
+		if (nonSystemOnly) return null;
 		return super.getResourceAsStream(name);
 	}
 
-	public Class<?> forceLoadClass(String name)
-			throws ClassNotFoundException {
+	public Class<?> forceLoadClass(final String name)
+		throws ClassNotFoundException
+	{
 		return loadClass(name, true, true);
 	}
 
 	@Override
-	public Class<?> loadClass(String name)
-			throws ClassNotFoundException {
+	public Class<?> loadClass(final String name) throws ClassNotFoundException {
 		return loadClass(name, true);
 	}
 
 	@Override
-	public synchronized Class<?> loadClass(String name,
-			boolean resolve) throws ClassNotFoundException {
+	public synchronized Class<?> loadClass(final String name,
+		final boolean resolve) throws ClassNotFoundException
+	{
 		return loadClass(name, resolve, false);
 	}
 
-	public synchronized Class<?> loadClass(String name,
-				boolean resolve, boolean forceReload)
-			throws ClassNotFoundException {
-		Class<?> cached = forceReload ? null : cache.get(name);
-		if (cached != null)
-			return cached;
+	public synchronized Class<?> loadClass(final String name,
+		final boolean resolve, final boolean forceReload)
+			throws ClassNotFoundException
+	{
+		final Class<?> cached = forceReload ? null : cache.get(name);
+		if (cached != null) return cached;
 		Class<?> result;
 		try {
 			if (!forceReload) {
 				result = super.loadClass(name, resolve);
-				if (result != null)
-					return result;
+				if (result != null) return result;
 			}
-		} catch (Exception e) {
+		}
+		catch (final Exception e) {
 			// fall through
 		}
-		String path = name.replace('.', '/') + ".class";
-		InputStream input = getResourceAsStream(path, !true);
-		if (input == null)
-			throw new ClassNotFoundException(name);
+		final String path = name.replace('.', '/') + ".class";
+		final InputStream input = getResourceAsStream(path, !true);
+		if (input == null) throw new ClassNotFoundException(name);
 		try {
-			byte[] buffer = readStream(input);
+			final byte[] buffer = readStream(input);
 			input.close();
-			result = defineClass(name,
-					buffer, 0, buffer.length);
+			result = defineClass(name, buffer, 0, buffer.length);
 			if (result.getPackage() == null) {
-				String packageName = name.substring(0, name.lastIndexOf('.'));
+				final String packageName = name.substring(0, name.lastIndexOf('.'));
 				definePackage(packageName, null, null, null, null, null, null, null);
 			}
 			cache.put(name, result);
 			return result;
-		} catch (IOException e) {
-			result = forceReload ?
-				super.loadClass(name, resolve) : null;
+		}
+		catch (final IOException e) {
+			result = forceReload ? super.loadClass(name, resolve) : null;
 			return result;
 		}
 	}
 
-	protected static byte[] readStream(InputStream in) throws IOException {
-		byte[] buffer = new byte[16384];
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
+	protected static byte[] readStream(final InputStream in) throws IOException {
+		final byte[] buffer = new byte[16384];
+		final ByteArrayOutputStream out = new ByteArrayOutputStream();
 		for (;;) {
-			int count = in.read(buffer);
-			if (count < 0)
-				break;
+			final int count = in.read(buffer);
+			if (count < 0) break;
 			out.write(buffer, 0, count);
 		}
 		in.close();

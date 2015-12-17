@@ -44,10 +44,11 @@ import org.xml.sax.XMLReader;
 
 /**
  * TODO
- * 
+ *
  * @author Johannes Schindelin
  */
 public class VersionPOMHandler extends AbstractPOMHandler {
+
 	protected String version;
 
 	@Override
@@ -57,17 +58,21 @@ public class VersionPOMHandler extends AbstractPOMHandler {
 		}
 	}
 
-	public static String parse(File xml) throws IOException, ParserConfigurationException, SAXException {
+	public static String parse(final File xml) throws IOException,
+		ParserConfigurationException, SAXException
+	{
 		return parse(new FileInputStream(xml));
 	}
 
-	public static String parse(InputStream in) throws IOException, ParserConfigurationException, SAXException {
-		VersionPOMHandler handler = new VersionPOMHandler();
-		XMLReader reader = SAXParserFactory.newInstance().newSAXParser().getXMLReader();
+	public static String parse(final InputStream in) throws IOException,
+		ParserConfigurationException, SAXException
+	{
+		final VersionPOMHandler handler = new VersionPOMHandler();
+		final XMLReader reader = SAXParserFactory.newInstance().newSAXParser()
+			.getXMLReader();
 		reader.setContentHandler(handler);
 		reader.parse(new InputSource(in));
-		if (handler.version != null)
-			return handler.version;
+		if (handler.version != null) return handler.version;
 		throw new IOException("Missing version");
 	}
 }

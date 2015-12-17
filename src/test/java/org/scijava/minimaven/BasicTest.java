@@ -48,12 +48,14 @@ import org.junit.Test;
 
 /**
  * A simple test for MiniMaven.
- * 
+ * <p>
  * This tests the rudimentary function of MiniMaven.
- * 
+ * </p>
+ *
  * @author Johannes Schindelin
  */
 public class BasicTest {
+
 	@Test
 	public void testResources() throws Exception {
 		final MavenProject project = writeExampleProject();
@@ -85,94 +87,95 @@ public class BasicTest {
 	@Test
 	public void testExcludeDependencies() throws Exception {
 		final MavenProject excludedToo = writeExampleProject(
-				"<groupId>test3</groupId>",
-				"<artifactId>excludedToo</artifactId>",
-				"<version>0.0.1</version>");
+			"<groupId>test3</groupId>", //
+			 "<artifactId>excludedToo</artifactId>",
+			"<version>0.0.1</version>");
 
 		final MavenProject excluded = writeExampleProject(excludedToo.env,
-				"<groupId>test2</groupId>",
-				"<artifactId>excluded</artifactId>",
-				"<version>0.0.1</version>",
-				"<dependencies>",
-				"<dependency>",
-				"<groupId>test3</groupId>",
-				"<artifactId>excludedToo</artifactId>",
-				"<version>0.0.1</version>",
-				"</dependency>",
-				"</dependencies>");
+			"<groupId>test2</groupId>", //
+			"<artifactId>excluded</artifactId>", //
+			"<version>0.0.1</version>", //
+			"<dependencies>", //
+			"<dependency>", //
+			"<groupId>test3</groupId>", //
+			"<artifactId>excludedToo</artifactId>", //
+			"<version>0.0.1</version>", //
+			"</dependency>", //
+			"</dependencies>");
 
 		final MavenProject dependency = writeExampleProject(excluded.env,
-				"<groupId>test</groupId>",
-				"<artifactId>dependency</artifactId>",
-				"<version>1.0.0</version>",
-				"<dependencies>",
-				"<dependency>",
-				"<groupId>test2</groupId>",
-				"<artifactId>excluded</artifactId>",
-				"<version>0.0.1</version>",
-				"</dependency>",
-				"</dependencies>");
+			"<groupId>test</groupId>", //
+			"<artifactId>dependency</artifactId>", //
+			"<version>1.0.0</version>", //
+			"<dependencies>", //
+			"<dependency>", //
+			"<groupId>test2</groupId>", //
+			"<artifactId>excluded</artifactId>", //
+			"<version>0.0.1</version>", //
+			"</dependency>", //
+			"</dependencies>");
 
 		final MavenProject project = writeExampleProject(excluded.env,
-				"<groupId>test3</groupId>",
-				"<artifactId>top-level</artifactId>",
-				"<version>1.0.2</version>",
-				"<dependencies>",
-				"<dependency>",
-				"<groupId>test</groupId>",
-				"<artifactId>dependency</artifactId>",
-				"<version>1.0.0</version>",
-				"<exclusions>",
-				"<exclusion>",
-				"<groupId>test2</groupId>",
-				"<artifactId>excluded</artifactId>",
-				"</exclusion>",
-				"</exclusions>",
-				"</dependency>",
-				"</dependencies>");
+			"<groupId>test3</groupId>", //
+			"<artifactId>top-level</artifactId>", //
+			"<version>1.0.2</version>", //
+			"<dependencies>", //
+			"<dependency>", //
+			"<groupId>test</groupId>", //
+			"<artifactId>dependency</artifactId>", //
+			"<version>1.0.0</version>", //
+			"<exclusions>", //
+			"<exclusion>", //
+			"<groupId>test2</groupId>", //
+			"<artifactId>excluded</artifactId>", //
+			"</exclusion>", //
+			"</exclusions>", //
+			"</dependency>", //
+			"</dependencies>");
 
 		assertDependencies(excluded, "test3:excludedToo:0.0.1:jar");
-		assertDependencies(dependency, "test2:excluded:0.0.1:jar", "test3:excludedToo:0.0.1:jar");
+		assertDependencies(dependency, "test2:excluded:0.0.1:jar",
+			"test3:excludedToo:0.0.1:jar");
 		assertDependencies(project, "test:dependency:1.0.0:jar");
 	}
 
 	@Test
 	public void testDependencyManagement() throws Exception {
-		final MavenProject parent = writeExampleProject(
-				"<groupId>test</groupId>",
-				"<artifactId>parent</artifactId>",
-				"<version>0.0.1</version>",
-				"<packaging>pom</packaging>",
-				"<dependencyManagement>",
-				"<dependencies>",
-				"<groupId>test</groupId>",
-				"<artifactId>dependency</artifactId>",
-				"<version>0.0.3</version>",
-				"<dependency>",
-				"</dependency>",
-				"</dependencies>",
-				"</dependencyManagement>");
+		final MavenProject parent = writeExampleProject( //
+			"<groupId>test</groupId>", //
+			"<artifactId>parent</artifactId>", //
+			"<version>0.0.1</version>", //
+			"<packaging>pom</packaging>", //
+			"<dependencyManagement>", //
+			"<dependencies>", //
+			"<groupId>test</groupId>", //
+			"<artifactId>dependency</artifactId>", //
+			"<version>0.0.3</version>", //
+			"<dependency>", //
+			"</dependency>", //
+			"</dependencies>", //
+			"</dependencyManagement>");
 
-		writeExampleProject(parent.env,
-				"<groupId>test</groupId>",
-				"<artifactId>dependency</artifactId>",
-				"<version>0.0.3</version>");
+		writeExampleProject(parent.env, //
+			"<groupId>test</groupId>", //
+			"<artifactId>dependency</artifactId>", //
+			"<version>0.0.3</version>");
 
-		final MavenProject project = writeExampleProject(parent.env,
-				"<parent>",
-				"<groupId>test</groupId>",
-				"<artifactId>parent</artifactId>",
-				"<version>0.0.1</version>",
-				"</parent>",
-				"<groupId>test</groupId>",
-				"<artifactId>project</artifactId>",
-				"<version>1.0.0</version>",
-				"<dependencies>",
-				"<dependency>",
-				"<groupId>test</groupId>",
-				"<artifactId>dependency</artifactId>",
-				"</dependency>",
-				"</dependencies>");
+		final MavenProject project = writeExampleProject(parent.env, //
+			"<parent>", //
+			"<groupId>test</groupId>", //
+			"<artifactId>parent</artifactId>", //
+			"<version>0.0.1</version>", //
+			"</parent>", //
+			"<groupId>test</groupId>", //
+			"<artifactId>project</artifactId>", //
+			"<version>1.0.0</version>", //
+			"<dependencies>", //
+			"<dependency>", //
+			"<groupId>test</groupId>", //
+			"<artifactId>dependency</artifactId>", //
+			"</dependency>", //
+			"</dependencies>");
 
 		assertDependencies(project, "test:dependency:0.0.3:jar");
 	}
@@ -188,22 +191,22 @@ public class BasicTest {
 
 		final BuildEnvironment env = new BuildEnvironment(null, true, false, false);
 		final MavenProject project = writeExampleProject(env,
-				"<groupId>test</groupId>",
-				"<artifactId>project</artifactId>",
-				"<version>1.0.0</version>",
-				"<dependencies>",
-				"<dependency>",
-				"<groupId>" + groupId + "</groupId>",
-				"<artifactId>" + artifactId + "</artifactId>",
-				"<version>" + version + "</version>",
-				"</dependency>",
-				"<dependency>",
-				"<groupId>" + groupId + "</groupId>",
-				"<artifactId>" + artifactId + "</artifactId>",
-				"<version>" + version + "</version>",
-				"<classifier>" + classifier + "</classifier>",
-				"</dependency>",
-				"</dependencies>");
+			"<groupId>test</groupId>", //
+			"<artifactId>project</artifactId>", //
+			"<version>1.0.0</version>", //
+			"<dependencies>", //
+			"<dependency>", //
+			"<groupId>" + groupId + "</groupId>", //
+			"<artifactId>" + artifactId + "</artifactId>", //
+			"<version>" + version + "</version>", //
+			"</dependency>", //
+			"<dependency>", //
+			"<groupId>" + groupId + "</groupId>", //
+			"<artifactId>" + artifactId + "</artifactId>", //
+			"<version>" + version + "</version>", //
+			"<classifier>" + classifier + "</classifier>", //
+			"</dependency>", //
+			"</dependencies>");
 
 		final File ijDir = createTemporaryDirectory("ImageJ.app-");
 		project.buildAndInstall(ijDir);
@@ -211,7 +214,8 @@ public class BasicTest {
 		final File jarsDir = new File(ijDir, "jars");
 		final File file = new File(jarsDir, artifactId + "-" + version + ".jar");
 		assertTrue(file.exists());
-		final File file2 = new File(jarsDir, artifactId + "-" + version + "-" + classifier + ".jar");
+		final File file2 = new File(jarsDir, artifactId + "-" + version + "-" +
+			classifier + ".jar");
 		assertTrue(file2.exists());
 	}
 

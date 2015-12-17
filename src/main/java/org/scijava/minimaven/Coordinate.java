@@ -34,26 +34,40 @@ import java.util.Set;
 
 /**
  * TODO
- * 
+ *
  * @author Johannes Schindelin
  */
 public class Coordinate {
-	protected String groupId, artifactId, version, systemPath, classifier, scope, snapshotVersion;
+
+	protected String groupId, artifactId, version, systemPath, classifier, scope,
+			snapshotVersion;
 	protected boolean optional;
-	protected Set<String> exclusions; // entries look like this: <groupId>:<artifactId>
+
+	// entries look like this: <groupId>:<artifactId>
+	protected Set<String> exclusions;
 
 	public Coordinate() {}
 
-	public Coordinate(String groupId, String artifactId, String version) {
+	public Coordinate(final String groupId, final String artifactId,
+		final String version)
+	{
 		this(groupId, artifactId, version, null, false, null, null, null);
 	}
 
 	@Deprecated
-	public Coordinate(String groupId, String artifactId, String version, String scope, boolean optional, String systemPath, String classifier) {
-		this(groupId, artifactId, version, scope, optional, systemPath, classifier, null);
+	public Coordinate(final String groupId, final String artifactId,
+		final String version, final String scope, final boolean optional,
+		final String systemPath, final String classifier)
+	{
+		this(groupId, artifactId, version, scope, optional, systemPath, classifier,
+			null);
 	}
 
-	protected Coordinate(String groupId, String artifactId, String version, String scope, boolean optional, String systemPath, String classifier, Set<String> exclusions) {
+	protected Coordinate(final String groupId, final String artifactId,
+		final String version, final String scope, final boolean optional,
+		final String systemPath, final String classifier,
+		final Set<String> exclusions)
+	{
 		this.groupId = normalize(groupId);
 		this.artifactId = normalize(artifactId);
 		this.version = normalize(version);
@@ -64,7 +78,7 @@ public class Coordinate {
 		this.exclusions = exclusions;
 	}
 
-	public String normalize(String s) {
+	public String normalize(final String s) {
 		return "".equals(s) ? null : s;
 	}
 
@@ -72,7 +86,7 @@ public class Coordinate {
 		return getJarName(false);
 	}
 
-	public String getJarName(boolean withProjectPrefix) {
+	public String getJarName(final boolean withProjectPrefix) {
 		return getFileName(withProjectPrefix, true, "jar");
 	}
 
@@ -80,26 +94,30 @@ public class Coordinate {
 		return getPOMName(false);
 	}
 
-	public String getPOMName(boolean withProjectPrefix) {
+	public String getPOMName(final boolean withProjectPrefix) {
 		return getFileName(withProjectPrefix, false, "pom");
 	}
 
-	public String getFileName(boolean withClassifier, String fileExtension) {
+	public String getFileName(final boolean withClassifier,
+		final String fileExtension)
+	{
 		return getFileName(false, withClassifier, fileExtension);
 	}
 
-	public String getFileName(boolean withProjectPrefix, boolean withClassifier, String fileExtension) {
-		return (withProjectPrefix ? groupId + "/" : "")
-			+ artifactId + "-" + getVersion()
-			+ (withClassifier && classifier != null ? "-" + classifier : "")
-			+ (fileExtension != null ? "." + fileExtension : "");
+	public String getFileName(final boolean withProjectPrefix,
+		final boolean withClassifier, final String fileExtension)
+	{
+		return (withProjectPrefix ? groupId + "/" : "") + artifactId + "-" +
+			getVersion() + (withClassifier && classifier != null ? "-" + classifier
+				: "") + (fileExtension != null ? "." + fileExtension : "");
 	}
 
 	public String getKey() {
-		return groupId + ">" + artifactId + (classifier == null ? "" : ">" + classifier);
+		return groupId + ">" + artifactId + (classifier == null ? "" : ">" +
+			classifier);
 	}
 
-	public void setSnapshotVersion(String version) {
+	public void setSnapshotVersion(final String version) {
 		snapshotVersion = version;
 	}
 
@@ -122,12 +140,9 @@ public class Coordinate {
 	@Override
 	public String toString() {
 		String extra = "";
-		if (optional)
-			extra += " optional";
-		if (scope != null)
-			extra += " scope=" + scope;
-		if (extra.startsWith(" "))
-			extra = "{" + extra.substring(1) + "}";
+		if (optional) extra += " optional";
+		if (scope != null) extra += " scope=" + scope;
+		if (extra.startsWith(" ")) extra = "{" + extra.substring(1) + "}";
 		return getFileName(true, true, null) + extra;
 	}
 }

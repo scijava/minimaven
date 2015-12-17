@@ -41,51 +41,56 @@ import java.util.TreeSet;
 
 /**
  * The main-class for a simple and small drop-in replacement of Maven.
- * 
- * Naturally, MiniMaven does not pretend to be as powerful as Maven. But it does the job
- * as far as ImageJ2 and Fiji are concerned, and it does not download half the internet
- * upon initial operation.
- * 
+ * <p>
+ * Naturally, MiniMaven does not pretend to be as powerful as Maven. But it does
+ * the job as far as ImageJ2 and Fiji are concerned, and it does not download
+ * half the internet upon initial operation.
+ * </p>
+ *
  * @author Johannes Schindelin
  */
 public class MiniMaven {
+
 	private final static void usage() {
-		System.err.println("Usage: MiniMaven [options...] [command]\n\n"
-				+ "Supported commands:\n"
-				+ "compile\n"
-				+ "\tcompile the project\n"
-				+ "jar\n"
-				+ "\tcompile the project into a .jar file\n"
-				+ "install\n"
-				+ "\tcompile & install the project and its dependencies\n"
-				+ "run\n"
-				+ "\trun the project\n"
-				+ "compile-and-run\n"
-				+ "\tcompile and run the project\n"
-				+ "clean\n"
-				+ "\tclean the project\n"
-				+ "get-dependencies\n"
-				+ "\tdownload the dependencies of the project\n"
-				+ "list\n"
-				+ "\tshow list of projects\n"
-				+ "dependency-tree\n"
-				+ "\tshow the tree of depending projects\n\n"
-				+ "Options:\n"
-				+ "-D<key>=<value>\n"
-				+ "\tset a system property");
+		System.err.println("Usage: MiniMaven [options...] [command]\n\n" +
+			"Supported commands:\n" + //
+			"compile\n" + //
+			"\tcompile the project\n" + //
+			"jar\n" + //
+			"\tcompile the project into a .jar file\n" + //
+			"install\n" + //
+			"\tcompile & install the project and its dependencies\n" + //
+			"run\n" + //
+			"\trun the project\n" + //
+			"compile-and-run\n" + //
+			"\tcompile and run the project\n" + //
+			"clean\n" + //
+			"\tclean the project\n" + //
+			"get-dependencies\n" + //
+			"\tdownload the dependencies of the project\n" + //
+			"list\n" + //
+			"\tshow list of projects\n" + //
+			"dependency-tree\n" + //
+			"\tshow the tree of depending projects\n\n" + //
+			"Options:\n" + //
+			"-D<key>=<value>\n" + //
+			"\tset a system property");
 		System.exit(1);
 	}
 
-	public static void main(String[] args) throws Exception {
+	public static void main(final String[] args) throws Exception {
 		int offset;
-		for (offset = 0; offset < args.length && args[offset].charAt(0) == '-'; offset++) {
+		for (offset = 0; offset < args.length && args[offset].charAt(
+			0) == '-'; offset++)
+		{
 			final String option = args[offset];
 			if (option.startsWith("-D")) {
 				final int equals = option.indexOf('=', 2);
 				final String value;
 				if (equals < 0) value = "true";
 				else value = option.substring(equals + 1);
-				System.setProperty(option.substring(2, equals < 0 ? option.length() : equals), value);
+				System.setProperty(option.substring(2, equals < 0 ? option.length()
+					: equals), value);
 			}
 			else if (option.equals("-U")) {
 				System.setProperty("minimaven.updateinterval", "0");
@@ -96,34 +101,36 @@ public class MiniMaven {
 			}
 		}
 		String command = "compile-and-run";
-		if (args.length == offset + 1)
-			command = args[offset];
-		else if (args.length > offset + 1)
-			usage();
+		if (args.length == offset + 1) command = args[offset];
+		else if (args.length > offset + 1) usage();
 
 		final PrintStream err = System.err;
-		final BuildEnvironment env = new BuildEnvironment(err,
-			"true".equals(getSystemProperty("minimaven.download.automatically", "true")),
-			"true".equals(getSystemProperty("minimaven.verbose", "false")),
+		final BuildEnvironment env = new BuildEnvironment(err, //
+			"true".equals(getSystemProperty("minimaven.download.automatically",
+				"true")), //
+			"true".equals(getSystemProperty("minimaven.verbose", "false")), //
 			"true".equals(getSystemProperty("minimaven.debug", "false")));
 		final MavenProject root = env.parse(new File("pom.xml"), null);
-		final String artifactId = getSystemProperty("artifactId", root.getArtifactId().equals("pom-ij-base") || root.getArtifactId().equals("pom-imagej") ? "ij-app" : root.getArtifactId());
+		final String artifactId = getSystemProperty("artifactId", root
+			.getArtifactId().equals("pom-ij-base") || root.getArtifactId().equals(
+				"pom-imagej") ? "ij-app" : root.getArtifactId());
 
 		MavenProject pom = findPOM(root, artifactId);
 		if (pom == null) {
 			final String specifiedArtifactId = System.getProperty("artifactId");
 			if (specifiedArtifactId != null) {
-				System.err.println("Could not find project for artifactId '" + artifactId + "'!");
+				System.err.println("Could not find project for artifactId '" +
+					artifactId + "'!");
 				System.exit(1);
 			}
 			pom = root;
 		}
-		if (command.equals("compile") || command.equals("build") || command.equals("compile-and-run")) {
+		if (command.equals("compile") || command.equals("build") || command.equals(
+			"compile-and-run"))
+		{
 			pom.build();
-			if (command.equals("compile-and-run"))
-				command = "run";
-			else
-				return;
+			if (command.equals("compile-and-run")) command = "run";
+			else return;
 		}
 		else if (command.equals("jar") || command.equals("jars")) {
 			if (!pom.getBuildFromSource()) {
@@ -131,51 +138,54 @@ public class MiniMaven {
 				System.exit(1);
 			}
 			pom.buildJar();
-			if (command.equals("jars"))
-				pom.copyDependencies(pom.getTarget(), true);
+			if (command.equals("jars")) pom.copyDependencies(pom.getTarget(), true);
 			return;
 		}
 		else if (command.equals("install")) try {
 			pom.buildAndInstall();
 			return;
-		} catch (Throwable t) {
+		}
+		catch (final Throwable t) {
 			t.printStackTrace();
 			System.exit(1);
 		}
-		if (command.equals("clean"))
-			pom.clean();
-		else if (command.equals("get") || command.equals("get-dependencies"))
+		if (command.equals("clean")) pom.clean();
+		else if (command.equals("get") || command.equals("get-dependencies")) {
 			pom.downloadDependencies();
+		}
 		else if (command.equals("run")) {
-			final String mainClass = getSystemProperty("mainClass", pom.getMainClass());
+			final String mainClass = getSystemProperty("mainClass", pom
+				.getMainClass());
 			if (mainClass == null) {
 				err.println("No main class specified in pom " + pom.getCoordinate());
 				System.exit(1);
 			}
 			final String[] paths = pom.getClassPath(false).split(File.pathSeparator);
 			final URL[] urls = new URL[paths.length];
-			for (int i = 0; i < urls.length; i++)
-				urls[i] = new URL("file:" + paths[i] + (paths[i].endsWith(".jar") ? "" : "/"));
+			for (int i = 0; i < urls.length; i++) {
+				urls[i] = new URL("file:" + paths[i] + (paths[i].endsWith(".jar") ? ""
+					: "/"));
+			}
 			final URLClassLoader classLoader = new URLClassLoader(urls);
 			// needed for sezpoz
 			Thread.currentThread().setContextClassLoader(classLoader);
 			final Class<?> clazz = classLoader.loadClass(mainClass);
-			final Method main = clazz.getMethod("main", new Class[] { String[].class });
+			final Method main = clazz.getMethod("main", new Class[] {
+				String[].class });
 			main.invoke(null, new Object[] { new String[0] });
 		}
-		else if (command.equals("classpath"))
-			err.println(pom.getClassPath(false));
+		else if (command.equals("classpath")) err.println(pom.getClassPath(false));
 		else if (command.equals("list")) {
 			final Set<MavenProject> result = new TreeSet<MavenProject>();
 			final Stack<MavenProject> stack = new Stack<MavenProject>();
 			stack.push(pom.getRoot());
 			while (!stack.empty()) {
 				pom = stack.pop();
-				if (result.contains(pom) || !pom.getBuildFromSource())
-					continue;
+				if (result.contains(pom) || !pom.getBuildFromSource()) continue;
 				result.add(pom);
-				for (MavenProject child : pom.getChildren())
+				for (final MavenProject child : pom.getChildren()) {
 					stack.push(child);
+				}
 			}
 			for (final MavenProject pom2 : result)
 				System.err.println(pom2);
@@ -193,27 +203,36 @@ public class MiniMaven {
 		}
 	}
 
-	protected static void showDependencyTree(final PrintStream err, final MavenProject pom, final String prefix) {
+	protected static void showDependencyTree(final PrintStream err,
+		final MavenProject pom, final String prefix)
+	{
 		err.println(prefix + pom.getGAV());
 		if ("pom".equals(pom.getPackaging())) {
 			for (final MavenProject child : pom.getChildren()) {
 				showDependencyTree(err, child, prefix + "\t");
 			}
-		} else {
-			for (final Coordinate coordinate : pom.getDirectDependencies()) try {
-				final MavenProject dependency = pom.findPOM(coordinate, true, false);
-				if (dependency == null) {
-					err.println(prefix + coordinate.getGAV() + " (not found)");
-				} else {
-					showDependencyTree(err, dependency, prefix + "\t");
+		}
+		else {
+			for (final Coordinate coordinate : pom.getDirectDependencies()) {
+				try {
+					final MavenProject dependency = pom.findPOM(coordinate, true, false);
+					if (dependency == null) {
+						err.println(prefix + coordinate.getGAV() + " (not found)");
+					}
+					else {
+						showDependencyTree(err, dependency, prefix + "\t");
+					}
 				}
-			} catch (final Throwable t) {
-				err.println(prefix + coordinate.getGAV() + ": " + t);
+				catch (final Throwable t) {
+					err.println(prefix + coordinate.getGAV() + ": " + t);
+				}
 			}
 		}
 	}
 
-	protected static void showTree(final PrintStream err, final MavenProject pom, final String prefix) {
+	protected static void showTree(final PrintStream err, final MavenProject pom,
+		final String prefix)
+	{
 		err.println(prefix + pom.getGAV());
 		final MavenProject[] children = pom.getChildren();
 		for (int i = 0; i < children.length; i++) {
@@ -221,19 +240,22 @@ public class MiniMaven {
 		}
 	}
 
-	protected static MavenProject findPOM(MavenProject root, String artifactId) {
+	protected static MavenProject findPOM(final MavenProject root,
+		final String artifactId)
+	{
 		if (artifactId == null || artifactId.equals(root.getArtifactId()))
 			return root;
-		for (MavenProject child : root.getChildren()) {
-			MavenProject pom = findPOM(child, artifactId);
-			if (pom != null)
-				return pom;
+		for (final MavenProject child : root.getChildren()) {
+			final MavenProject pom = findPOM(child, artifactId);
+			if (pom != null) return pom;
 		}
 		return null;
 	}
 
-	protected static String getSystemProperty(String key, String defaultValue) {
-		String result = System.getProperty(key);
+	protected static String getSystemProperty(final String key,
+		final String defaultValue)
+	{
+		final String result = System.getProperty(key);
 		return result == null ? defaultValue : result;
 	}
 }

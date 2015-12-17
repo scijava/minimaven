@@ -37,13 +37,13 @@ import org.xml.sax.helpers.DefaultHandler;
 /**
  * Abstract base class for POM SAX handlers. Aggregates multi-chunk character
  * streams into a single string.
- * 
+ *
  * @author Curtis Rueden
  */
 public abstract class AbstractPOMHandler extends DefaultHandler {
 
 	protected String qName;
-	private StringBuilder characters = new StringBuilder();
+	private final StringBuilder characters = new StringBuilder();
 	private boolean gotCharacters;
 
 	@Override

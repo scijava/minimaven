@@ -38,15 +38,16 @@ import java.io.PrintStream;
 
 /**
  * TODO
- * 
+ *
  * @author Johannes Schindelin
  */
 public class ReadInto extends Thread {
+
 	protected BufferedReader reader;
 	protected PrintStream err;
 	protected StringBuilder buffer = new StringBuilder();
 
-	public ReadInto(InputStream in, PrintStream err) {
+	public ReadInto(final InputStream in, final PrintStream err) {
 		reader = new BufferedReader(new InputStreamReader(in));
 		this.err = err;
 		start();
@@ -54,21 +55,21 @@ public class ReadInto extends Thread {
 
 	@Override
 	public void run() {
-		for (;;) try {
-			String line = reader.readLine();
-			if (line == null)
-				break;
-			if (err != null)
-				err.println(line);
-			buffer.append(line);
-			Thread.sleep(0);
+		for (;;) {
+			try {
+				final String line = reader.readLine();
+				if (line == null) break;
+				if (err != null) err.println(line);
+				buffer.append(line);
+				Thread.sleep(0);
+			}
+			catch (final InterruptedException e) { /* just stop */ }
+			catch (final IOException e) { /* just stop */ }
 		}
-		catch (InterruptedException e) { /* just stop */ }
-		catch (IOException e) { /* just stop */ }
 		try {
 			reader.close();
 		}
-		catch (IOException e) { /* just stop */ }
+		catch (final IOException e) { /* just stop */ }
 	}
 
 	@Override
