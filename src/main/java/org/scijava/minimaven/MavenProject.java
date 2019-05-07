@@ -1169,7 +1169,7 @@ public class MavenProject implements Comparable<MavenProject> {
 		// add a default to the root
 		if (parent == null) {
 			result.add(
-				"http://maven.imagej.net/service/local/repo_groups/public/content/");
+				"https://maven.scijava.org/service/local/repo_groups/public/content/");
 			result.add("http://repo1.maven.org/maven2/");
 		}
 		result.addAll(repositories);
