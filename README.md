@@ -1,5 +1,5 @@
 [![](https://img.shields.io/maven-central/v/org.scijava/minimaven.svg)](http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.scijava%22%20AND%20a%3A%22minimaven%22)
-[![](https://travis-ci.org/scijava/minimaven.svg?branch=master)](https://travis-ci.org/scijava/minimaven)
+[![](https://github.com/scijava/minimaven/actions/workflows/build-main.yml/badge.svg)](https://github.com/scijava/minimaven/actions/workflows/build-main.yml)
 
 # MiniMaven
 
