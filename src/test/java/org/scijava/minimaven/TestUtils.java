@@ -257,7 +257,7 @@ public class TestUtils {
 		File dir = file;
 		while (dir != null && !dir.exists()) dir = dir.getParentFile();
 		if (dir != null) {
-			sb.append("'" + dir.getPath() + "' directory listing: ");
+			sb.append("; '" + dir.getPath() + "' directory listing: ");
 			sb.append(Arrays.toString(dir.listFiles()));
 		}
 		fail(sb.toString());
