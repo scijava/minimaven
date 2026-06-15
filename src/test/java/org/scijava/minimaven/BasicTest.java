@@ -88,7 +88,7 @@ public class BasicTest {
 	public void testExcludeDependencies() throws Exception {
 		final MavenProject excludedToo = writeExampleProject(
 			"<groupId>test3</groupId>", //
-			 "<artifactId>excludedToo</artifactId>",
+			"<artifactId>excludedToo</artifactId>", //
 			"<version>0.0.1</version>");
 
 		final MavenProject excluded = writeExampleProject(excludedToo.env,
