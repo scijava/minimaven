@@ -1167,9 +1167,8 @@ public class MavenProject implements Comparable<MavenProject> {
 	protected void getRepositories(final Set<String> result) {
 		// add a default to the root
 		if (parent == null) {
-			result.add(
-				"https://maven.scijava.org/service/local/repo_groups/public/content/");
-			result.add("http://repo1.maven.org/maven2/");
+			result.add("https://maven.scijava.org/content/groups/public");
+			result.add("https://repo1.maven.org/maven2");
 		}
 		result.addAll(repositories);
 		for (final MavenProject child : getChildren()) {
