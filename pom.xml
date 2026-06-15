@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
@@ -31,7 +31,7 @@
 		<developer>
 			<id>ctrueden</id>
 			<name>Curtis Rueden</name>
-			<url>https://imagej.net/User:Rueden</url>
+			<url>https://imagej.net/people/ctrueden</url>
 			<roles>
 				<role>lead</role>
 				<role>developer</role>
@@ -45,13 +45,13 @@
 	<contributors>
 		<contributor>
 			<name>Johannes Schindelin</name>
-			<url>https://imagej.net/User:Schindelin</url>
+			<url>https://imagej.net/people/dscho</url>
 			<roles><role>founder</role></roles>
 			<properties><id>dscho</id></properties>
 		</contributor>
 		<contributor>
 			<name>Mark Hiner</name>
-			<url>https://imagej.net/User:Hinerm</url>
+			<url>https://imagej.net/people/hinerm</url>
 			<properties><id>hinerm</id></properties>
 		</contributor>
 	</contributors>
@@ -86,8 +86,7 @@
 		<main-class>org.scijava.minimaven.MiniMaven</main-class>
 		<package-name>org.scijava.minimaven</package-name>
 		<license.licenseName>bsd_2</license.licenseName>
-		<license.copyrightOwners>Board of Regents of the University of
-Wisconsin-Madison.</license.copyrightOwners>
+		<license.copyrightOwners>SciJava developers.</license.copyrightOwners>
 		<license.projectName>MiniMaven build system for small Java projects.</license.projectName>
 	</properties>
 
