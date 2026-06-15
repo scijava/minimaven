@@ -181,6 +181,7 @@ public class MavenProject implements Comparable<MavenProject> {
 	protected void download(final Coordinate dependency, final boolean quiet)
 		throws FileNotFoundException
 	{
+		Exception last = null;
 		for (final String url : getRoot().getRepositories()) {
 			try {
 				if (env.debug) {
@@ -190,11 +191,14 @@ public class MavenProject implements Comparable<MavenProject> {
 				return;
 			}
 			catch (final Exception e) {
-				if (env.verbose) e.printStackTrace();
+				if (env.debug) e.printStackTrace(env.err);
+				last = e;
 			}
 		}
-		throw new FileNotFoundException("Could not download " + dependency
-			.getJarName());
+		final FileNotFoundException ex = new FileNotFoundException(
+			"Could not download " + dependency.getJarName());
+		if (last != null) ex.initCause(last);
+		throw ex;
 	}
 
 	public boolean upToDate(final boolean includingJar) throws IOException,
@@ -1370,10 +1374,10 @@ public class MavenProject implements Comparable<MavenProject> {
 			download(dependency, quiet);
 		}
 		catch (final Exception e) {
-			if (!quiet && !dependency.optional) {
-				e.printStackTrace(env.err);
+			if (!dependency.optional) {
 				env.err.println("Could not download " + dependency.artifactId + ": " + e
 					.getMessage());
+				if (env.debug) e.printStackTrace(env.err);
 			}
 			final String key = dependency.getKey();
 			env.localPOMCache.put(key, null);

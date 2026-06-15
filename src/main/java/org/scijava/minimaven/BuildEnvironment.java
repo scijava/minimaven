@@ -483,6 +483,8 @@ public class BuildEnvironment {
 				for (final byte b : digestBytes)
 					actual += String.format("%02x", b & 0xff);
 				fileStream.close();
+				file.delete();
+				sha1.delete();
 				throw new IOException("SHA1 mismatch: " + sha1 + ": " + Integer
 					.toHexString(value) + " != " + Integer.toHexString(d) +
 					" (actual SHA-1: " + actual + ")");
@@ -603,11 +605,20 @@ public class BuildEnvironment {
 			name = name.substring(name.lastIndexOf('/') + 1);
 		}
 		final URLConnection connection = url.openConnection();
+		final InputStream in;
 		if (connection instanceof HttpURLConnection) {
 			final HttpURLConnection http = (HttpURLConnection) connection;
 			http.setRequestProperty("User-Agent", "MiniMaven/2.0.0-SNAPSHOT");
+			final int code = http.getResponseCode();
+			if (code != HttpURLConnection.HTTP_OK) {
+				http.disconnect();
+				throw new IOException("HTTP " + code + " downloading " + url);
+			}
+			in = http.getInputStream();
 		}
-		final InputStream in = connection.getInputStream();
+		else {
+			in = connection.getInputStream();
+		}
 		if (message != null) err.println(message);
 		directory.mkdirs();
 		final File result = new File(directory, name);
