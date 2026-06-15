@@ -31,10 +31,11 @@
 package org.scijava.minimaven;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 import static org.scijava.minimaven.TestUtils.assertDependencies;
+import static org.scijava.minimaven.TestUtils.assertExists;
+import static org.scijava.minimaven.TestUtils.assertNotExists;
 import static org.scijava.minimaven.TestUtils.createTemporaryDirectory;
 import static org.scijava.minimaven.TestUtils.haveNetworkConnection;
 import static org.scijava.minimaven.TestUtils.read;
@@ -63,7 +64,7 @@ public class BasicTest {
 		project.buildJar();
 
 		final File blub = new File(tmp, "target/blub-1.0.0.jar");
-		assertTrue(blub.exists());
+		assertExists(blub);
 		assertEquals("1.0.0\n", read(new JarFile(blub), "version.txt"));
 	}
 
@@ -75,13 +76,13 @@ public class BasicTest {
 		assertTrue(jarsDir.mkdir());
 		final File oldVersion = new File(jarsDir, "blub-0.0.5.jar");
 		writeFile(oldVersion, "old");
-		assertTrue(oldVersion.exists());
+		assertExists(oldVersion);
 
 		project.buildAndInstall(ijDir);
 
 		final File blub = new File(jarsDir, "blub-1.0.0.jar");
-		assertTrue(blub.exists());
-		assertFalse(oldVersion.exists());
+		assertExists(blub);
+		assertNotExists(oldVersion);
 	}
 
 	@Test
@@ -213,10 +214,10 @@ public class BasicTest {
 
 		final File jarsDir = new File(ijDir, "jars");
 		final File file = new File(jarsDir, artifactId + "-" + version + ".jar");
-		assertTrue(file.exists());
+		assertExists(file);
 		final File file2 = new File(jarsDir, artifactId + "-" + version + "-" +
 			classifier + ".jar");
-		assertTrue(file2.exists());
+		assertExists(file2);
 	}
 
 	@Test
@@ -227,24 +228,24 @@ public class BasicTest {
 		assertTrue(jarsDir.mkdir());
 		final File oldVersion = new File(jarsDir, "blub-0.0.5.jar");
 		writeFile(oldVersion, "old");
-		assertTrue(oldVersion.exists());
+		assertExists(oldVersion);
 		final File pluginsDir = new File(ijDir, "plugins");
 		assertTrue(pluginsDir.mkdir());
 		final File oldVersion2 = new File(pluginsDir, "blub-0.0.jar");
 		writeFile(oldVersion2, "old2");
-		assertTrue(oldVersion2.exists());
+		assertExists(oldVersion2);
 		final File oldVersion3 = new File(pluginsDir, "blub-0.1.jar");
 		writeFile(oldVersion3, "old3");
-		assertTrue(oldVersion3.exists());
+		assertExists(oldVersion3);
 		final File different = new File(pluginsDir, "blub-1.0.0-swing.jar");
 		writeFile(different, "different");
-		assertTrue(different.exists());
+		assertExists(different);
 
 		project.clean(ijDir);
 
-		assertFalse(oldVersion.exists());
-		assertFalse(oldVersion2.exists());
-		assertFalse(oldVersion3.exists());
-		assertTrue(different.exists());
+		assertNotExists(oldVersion);
+		assertNotExists(oldVersion2);
+		assertNotExists(oldVersion3);
+		assertExists(different);
 	}
 }

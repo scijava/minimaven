@@ -31,6 +31,7 @@
 package org.scijava.minimaven;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -45,6 +46,7 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
 import java.util.AbstractMap;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Map;
@@ -239,6 +241,26 @@ public class TestUtils {
 			haystack.remove(gav);
 		}
 		assertTrue("Missing: " + haystack.toString(), haystack.isEmpty());
+	}
+
+	public static void assertExists(final File file) {
+		if (!file.exists()) existFail(file, "should exist but does not");
+	}
+
+	public static void assertNotExists(final File file) {
+		if (file.exists()) existFail(file, "should not exist but does");
+	}
+
+	private static void existFail(final File file, final String suffix) {
+		final StringBuilder sb = new StringBuilder();
+		sb.append("File '" + file.getPath() + "' should exist but does not");
+		File dir = file;
+		while (dir != null && !dir.exists()) dir = dir.getParentFile();
+		if (dir != null) {
+			sb.append("'" + dir.getPath() + "' directory listing: ");
+			sb.append(Arrays.toString(dir.listFiles()));
+		}
+		fail(sb.toString());
 	}
 
 	protected final static String pomPrefix =
